@@ -78,9 +78,7 @@ class _SharedOrderScreenState extends State<SharedOrderScreen> {
     return total + item.price * entry.value;
   });
 
-  double get _tax => _subtotal * 0.13;
-  double get _serviceCharge => _subtotal * 0.1;
-  double get _grandTotal => _subtotal + _tax + _serviceCharge;
+  double get _grandTotal => _subtotal;
 
   void _addToCart(_MenuItem item) {
     setState(() {
@@ -120,8 +118,8 @@ class _SharedOrderScreenState extends State<SharedOrderScreen> {
       orderLabel: label,
       items: items,
       subtotal: _subtotal,
-      tax: _tax,
-      serviceCharge: _serviceCharge,
+      tax: 0,
+      serviceCharge: 0,
       grandTotal: _grandTotal,
     );
   }
@@ -291,8 +289,6 @@ class _SharedOrderScreenState extends State<SharedOrderScreen> {
             ),
             const Divider(height: 32),
             _buildSummaryRow('Subtotal', _subtotal),
-            _buildSummaryRow('Tax (13%)', _tax),
-            _buildSummaryRow('Service (10%)', _serviceCharge),
             const Divider(height: 32),
             _buildSummaryRow('Grand Total', _grandTotal, isBold: true),
             const SizedBox(height: 16),
@@ -303,10 +299,6 @@ class _SharedOrderScreenState extends State<SharedOrderScreen> {
                 FilledButton(
                   onPressed: () => _showActionSnackBar('Sent to kitchen'),
                   child: const Text('Send to Kitchen'),
-                ),
-                OutlinedButton(
-                  onPressed: () => _showActionSnackBar('Print KOT'),
-                  child: const Text('Print KOT'),
                 ),
                 OutlinedButton(
                   onPressed: () {

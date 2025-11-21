@@ -288,6 +288,14 @@ class _StaffTile extends StatelessWidget {
                   avatar: const Icon(Icons.event_available_outlined, size: 18),
                   label: Text('Joined ${member.joinedDate}'),
                 ),
+                Chip(
+                  avatar: const Icon(Icons.badge_outlined, size: 18),
+                  label: Text('Login: ${member.loginId}'),
+                ),
+                Chip(
+                  avatar: const Icon(Icons.key_outlined, size: 18),
+                  label: Text('Temp PIN: ${member.tempPin}'),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -378,6 +386,8 @@ class _StaffFormSheetState extends State<StaffFormSheet> {
   late final TextEditingController _joinedController;
   late final TextEditingController _shiftController;
   late final TextEditingController _notesController;
+  late final TextEditingController _loginController;
+  late final TextEditingController _pinController;
   late String _status;
 
   @override
@@ -394,6 +404,8 @@ class _StaffFormSheetState extends State<StaffFormSheet> {
     _joinedController = TextEditingController(text: member?.joinedDate ?? '');
     _shiftController = TextEditingController(text: member?.shift ?? '');
     _notesController = TextEditingController(text: member?.notes ?? '');
+    _loginController = TextEditingController(text: member?.loginId ?? '');
+    _pinController = TextEditingController(text: member?.tempPin ?? '');
     _status = member?.status ?? _statuses.first;
   }
 
@@ -407,6 +419,8 @@ class _StaffFormSheetState extends State<StaffFormSheet> {
     _joinedController.dispose();
     _shiftController.dispose();
     _notesController.dispose();
+    _loginController.dispose();
+    _pinController.dispose();
     super.dispose();
   }
 
@@ -484,6 +498,21 @@ class _StaffFormSheetState extends State<StaffFormSheet> {
             ),
             const SizedBox(height: 12),
             TextField(
+              controller: _loginController,
+              decoration: const InputDecoration(
+                labelText: 'Login ID / Username',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _pinController,
+              decoration: const InputDecoration(
+                labelText: 'Temporary PIN / Password',
+              ),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 12),
+            TextField(
               controller: _joinedController,
               decoration: const InputDecoration(
                 labelText: 'Joined (e.g. Jan 2022)',
@@ -536,6 +565,12 @@ class _StaffFormSheetState extends State<StaffFormSheet> {
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
+        loginId: _loginController.text.trim().isEmpty
+            ? 'user${DateTime.now().millisecondsSinceEpoch}'
+            : _loginController.text.trim(),
+        tempPin: _pinController.text.trim().isEmpty
+            ? '0000'
+            : _pinController.text.trim(),
       ),
     );
 

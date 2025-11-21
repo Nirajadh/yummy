@@ -158,6 +158,8 @@ class StaffMember {
   final String status;
   final String shift;
   final String? notes;
+  final String loginId;
+  final String tempPin;
 
   const StaffMember({
     required this.name,
@@ -168,6 +170,8 @@ class StaffMember {
     required this.joinedDate,
     required this.status,
     required this.shift,
+    required this.loginId,
+    required this.tempPin,
     this.notes,
   });
 }
@@ -377,6 +381,8 @@ const dummyStaffMembers = <StaffMember>[
     status: 'Active',
     shift: 'Morning',
     notes: 'Handles vendor coordination',
+    loginId: 'ava.manager',
+    tempPin: '4321',
   ),
   StaffMember(
     name: 'Ravi Patel',
@@ -388,6 +394,8 @@ const dummyStaffMembers = <StaffMember>[
     status: 'Active',
     shift: 'Evening',
     notes: 'Strong upselling skills',
+    loginId: 'ravi.server',
+    tempPin: '7788',
   ),
   StaffMember(
     name: 'Lina Chen',
@@ -399,6 +407,8 @@ const dummyStaffMembers = <StaffMember>[
     status: 'On Leave',
     shift: 'Morning',
     notes: 'Specializes in desserts',
+    loginId: 'lina.chef',
+    tempPin: '2233',
   ),
   StaffMember(
     name: 'Samir Khan',
@@ -409,6 +419,8 @@ const dummyStaffMembers = <StaffMember>[
     joinedDate: 'Oct 2022',
     status: 'Active',
     shift: 'Split',
+    loginId: 'samir.cashier',
+    tempPin: '9900',
   ),
 ];
 
@@ -543,12 +555,7 @@ const dummyTables = <TableInfo>[
     activeItems: ['Tandoori Platter x1', 'Mango Lassi x4', 'Brownie Sundae x2'],
     pastOrders: ['ORD-130 • \$310.75', 'ORD-125 • \$280.40'],
   ),
-  TableInfo(
-    name: 'T6',
-    capacity: 2,
-    status: 'FREE',
-    notes: 'Near entrance',
-  ),
+  TableInfo(name: 'T6', capacity: 2, status: 'FREE', notes: 'Near entrance'),
   TableInfo(
     name: 'T7',
     capacity: 4,
@@ -569,12 +576,7 @@ const dummyTables = <TableInfo>[
     activeItems: ['Paneer Tikka x1', 'Mojito x3', 'Gulab Jamun x2'],
     pastOrders: ['ORD-140 • \$210.10'],
   ),
-  TableInfo(
-    name: 'T10',
-    capacity: 10,
-    status: 'FREE',
-    notes: 'Party table',
-  ),
+  TableInfo(name: 'T10', capacity: 10, status: 'FREE', notes: 'Party table'),
 ];
 
 const dummyGroups = <GroupInfo>[
@@ -648,7 +650,11 @@ const dummyMenuItems = <MenuItemModel>[
   MenuItemModel(name: 'Caesar Salad', category: 'Starters', price: 7.0),
   MenuItemModel(name: 'Paneer Tikka', category: 'Starters', price: 8.5),
   MenuItemModel(name: 'Margherita Pizza', category: 'Main Course', price: 12.0),
-  MenuItemModel(name: 'BBQ Chicken Pizza', category: 'Main Course', price: 13.5),
+  MenuItemModel(
+    name: 'BBQ Chicken Pizza',
+    category: 'Main Course',
+    price: 13.5,
+  ),
   MenuItemModel(name: 'Veggie Burger', category: 'Main Course', price: 11.0),
   MenuItemModel(name: 'Pasta Alfredo', category: 'Main Course', price: 12.5),
   MenuItemModel(name: 'Grilled Salmon', category: 'Main Course', price: 16.0),

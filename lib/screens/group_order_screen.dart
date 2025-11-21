@@ -94,7 +94,8 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
 
     String mode = 'All';
     String individualName = '';
-    final controller = TextEditingController();
+    final nameController = TextEditingController();
+    final controller = TextEditingController(text: _due.toStringAsFixed(2));
 
     await showModalBottomSheet<void>(
       context: context,
@@ -137,7 +138,11 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
                     ChoiceChip(
                       label: const Text('All'),
                       selected: mode == 'All',
-                      onSelected: (_) => setModalState(() => mode = 'All'),
+                      onSelected: (_) => setModalState(() {
+                        mode = 'All';
+                        nameController.clear();
+                        individualName = '';
+                      }),
                     ),
                     ChoiceChip(
                       label: const Text('Individual'),
@@ -150,6 +155,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
                 if (mode == 'Individual') ...[
                   const SizedBox(height: 12),
                   TextField(
+                    controller: nameController,
                     decoration: const InputDecoration(labelText: 'Person name'),
                     onChanged: (value) => individualName = value.trim(),
                   ),
@@ -157,8 +163,10 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: controller,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Amount'),
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Amount (auto-calculated)',
+                  ),
                 ),
                 const SizedBox(height: 16),
                 FilledButton(
@@ -258,13 +266,6 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: payerController,
-                decoration: const InputDecoration(
-                  labelText: 'Payer (optional)',
-                ),
-              ),
-              const SizedBox(height: 12),
               if (_paymentTargets.isNotEmpty)
                 DropdownButtonFormField<String>(
                   value: addNewPerson ? 'ADD_NEW' : target,
@@ -321,9 +322,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
                 value: method,
                 decoration: const InputDecoration(labelText: 'Method'),
                 items: const [
-                  DropdownMenuItem(value: 'Card', child: Text('Card')),
                   DropdownMenuItem(value: 'Cash', child: Text('Cash')),
-                  DropdownMenuItem(value: 'UPI', child: Text('UPI')),
                   DropdownMenuItem(value: 'Wallet', child: Text('Wallet')),
                 ],
                 onChanged: (value) {
@@ -353,13 +352,11 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
                   final double appliedAmount = maxDue > 0
                       ? amount.clamp(0, maxDue)
                       : amount;
-                  final payer = payerController.text.trim().isEmpty
-                      ? 'Guest'
-                      : payerController.text.trim();
+                  final payer = 'Guest';
                   final covers = int.tryParse(coversController.text);
                   setState(() {
                     _paid = (_paid + appliedAmount).clamp(0, _total) as double;
-                    if (targetName != null && targetName != 'All') {
+                    if (addNewPerson && targetName != null) {
                       _personTotals.putIfAbsent(targetName, () => 0);
                     }
                     _payments.add(
@@ -475,24 +472,6 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    final tax = _total * 0.1;
-                    final service = _total * 0.05;
-                    final targets = <String, double>{};
-                    final people = {
-                      ..._peopleLabels,
-                      ..._personTotals.keys,
-                    }.toList();
-                    for (final person in people) {
-                      final personSub =
-                          _personTotals[person] ??
-                          (_total / (people.isEmpty ? 1 : people.length));
-                      final ratio = _total == 0
-                          ? 0.0
-                          : (personSub / _total).clamp(0, 1);
-                      final personTax = tax * ratio;
-                      final personService = service * ratio;
-                      targets[person] = personSub + personTax + personService;
-                    }
                     final bill = BillPreviewArgs(
                       orderLabel: 'Group • ${_args.groupName}',
                       items: const [
@@ -503,11 +482,11 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
                         ),
                       ],
                       subtotal: _total,
-                      tax: tax,
-                      serviceCharge: service,
-                      grandTotal: _total + tax + service,
-                      allowMultiplePayments: true,
-                      paymentTargets: targets,
+                      tax: 0,
+                      serviceCharge: 0,
+                      grandTotal: _total,
+                      allowMultiplePayments: false,
+                      paymentTargets: null,
                     );
                     Navigator.pushNamed(
                       context,

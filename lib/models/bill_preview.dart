@@ -19,6 +19,8 @@ class BillPreviewArgs {
   final double tax;
   final double serviceCharge;
   final double grandTotal;
+  final bool allowMultiplePayments;
+  final Map<String, double>? paymentTargets;
 
   const BillPreviewArgs({
     required this.orderLabel,
@@ -27,5 +29,7 @@ class BillPreviewArgs {
     required this.tax,
     required this.serviceCharge,
     required this.grandTotal,
+    this.allowMultiplePayments = true,
+    this.paymentTargets,
   });
 }

@@ -40,37 +40,34 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
   }
 
   Future<void> _addItems() async {
-    await Navigator.pushNamed(
+    final sentToKitchen = await Navigator.pushNamed(
       context,
       '/order-screen',
       arguments: OrderScreenArgs(contextLabel: 'Table: ${_args.tableName}'),
     );
-    setState(() {
-      _status = 'OCCUPIED';
-      _activeItems.add('New items added (${TimeOfDay.now().format(context)})');
-    });
+    if (sentToKitchen == true) {
+      setState(() {
+        _status = 'OCCUPIED';
+        _activeItems.add(
+          'New items added (${TimeOfDay.now().format(context)})',
+        );
+      });
+    }
   }
 
   BillPreviewArgs _buildBill() {
     final items = _activeItems
-        .map(
-          (name) => BillLineItem(
-            name: name,
-            quantity: 1,
-            price: 12.0,
-          ),
-        )
+        .map((name) => BillLineItem(name: name, quantity: 1, price: 12.0))
         .toList();
-    final subtotal = items.fold<double>(0, (sum, item) => sum + item.lineTotal);
-    final tax = subtotal * 0.1;
-    final service = subtotal * 0.05;
-    final total = subtotal + tax + service;
+    final subtotal =
+        items.fold<double>(0, (sum, item) => sum + item.lineTotal);
+    final total = subtotal;
     return BillPreviewArgs(
       orderLabel: 'Table • ${_args.tableName}',
       items: items,
       subtotal: subtotal,
-      tax: tax,
-      serviceCharge: service,
+      tax: 0,
+      serviceCharge: 0,
       grandTotal: total,
     );
   }
@@ -83,7 +80,23 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
     final hasOrderedItems = _activeItems.isNotEmpty;
     final hasHistory = _pastOrders.isNotEmpty;
     return Scaffold(
-      appBar: AppBar(title: Text('Table: ${_args.tableName}')),
+      appBar: AppBar(
+        title: Text('Table: ${_args.tableName}'),
+        actions: [
+          TextButton.icon(
+            onPressed: () => _showMessage('Table marked free (UI only).'),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.primary,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.primary.withOpacity(0.12),
+            ),
+            icon: const Icon(Icons.check_circle),
+            label: const Text('Mark Free'),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -135,36 +148,48 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
+            Row(
               children: [
-                FilledButton.icon(
-                  onPressed: _addItems,
-                  icon: const Icon(Icons.playlist_add),
-                  label: const Text('Add Items'),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _addItems,
+                    icon: const Icon(Icons.playlist_add),
+                    label: const Text('Add Items'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
+                    ),
+                  ),
                 ),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    final bill = _buildBill();
-                    Navigator.pushNamed(
-                      context,
-                      '/bill-preview',
-                      arguments: bill,
-                    );
-                  },
-                  icon: const Icon(Icons.receipt_long),
-                  label: const Text('Checkout'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      final bill = _buildBill();
+                      Navigator.pushNamed(
+                        context,
+                        '/bill-preview',
+                        arguments: bill,
+                      );
+                    },
+                    icon: const Icon(Icons.receipt_long),
+                    label: const Text('Checkout'),
+                  ),
                 ),
-                FilledButton.tonalIcon(
-                  onPressed: () => _showMessage('KOT printed (UI only).'),
-                  icon: const Icon(Icons.print),
-                  label: const Text('Print KOT'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _showMessage('Table marked free (UI only).'),
-                  icon: const Icon(Icons.check_circle),
-                  label: const Text('Mark Free'),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () =>
+                        _showMessage('Table marked free (UI only).'),
+                    icon: const Icon(Icons.check_circle),
+                    label: const Text('Mark Free'),
+                  ),
                 ),
               ],
             ),

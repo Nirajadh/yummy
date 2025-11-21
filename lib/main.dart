@@ -35,12 +35,16 @@ class MyRestroApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: Colors.deepOrange,
+      brightness: Brightness.light,
+    );
     return MaterialApp(
       title: 'MyRestro',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+        colorScheme: colorScheme,
         scaffoldBackgroundColor: Colors.grey.shade50,
       ),
       initialRoute: '/login',
