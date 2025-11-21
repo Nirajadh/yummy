@@ -93,6 +93,7 @@ class _OrderScreenState extends State<OrderScreen> {
       tax: tax,
       serviceCharge: service,
       grandTotal: total,
+      allowMultiplePayments: true,
     );
   }
 
@@ -409,54 +410,46 @@ class _OrderScreenState extends State<OrderScreen> {
                               emphasize: true,
                             ),
                             const SizedBox(height: 12),
-                            Wrap(
-                              spacing: 10,
-                              runSpacing: 12,
+                            Row(
                               children: [
-                                FilledButton(
-                                  onPressed: () =>
-                                      _showAction('Sent to kitchen'),
-                                  child: const Text('Send to Kitchen'),
+                                Expanded(
+                                  child: _ActionCardButton(
+                                    icon: Icons.local_fire_department_outlined,
+                                    title: 'Send to Kitchen',
+                                    subtitle: 'Push order to the line',
+                                    gradient: [
+                                      accent.withOpacity(0.95),
+                                      accent,
+                                    ],
+                                    onTap: hasItems
+                                        ? () => _showAction('Sent to kitchen')
+                                        : null,
+                                  ),
                                 ),
-                                FilledButton.tonal(
-                                  onPressed: () => _showAction('KOT printed'),
-                                  child: const Text('Print KOT'),
-                                ),
-                                FilledButton.tonal(
-                                  onPressed: () {
-                                    if (_cart.isEmpty) {
-                                      _showAction('Add items before printing');
-                                      return;
-                                    }
-                                    Navigator.pushNamed(
-                                      context,
-                                      '/bill-preview',
-                                      arguments: _buildBillPreviewArgs(
-                                        tax: tax,
-                                        service: service,
-                                        total: total,
-                                      ),
-                                    );
-                                  },
-                                  child: const Text('Print Bill'),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    if (_cart.isEmpty) {
-                                      _showAction('Add items before checkout');
-                                      return;
-                                    }
-                                    Navigator.pushNamed(
-                                      context,
-                                      '/bill-preview',
-                                      arguments: _buildBillPreviewArgs(
-                                        tax: tax,
-                                        service: service,
-                                        total: total,
-                                      ),
-                                    );
-                                  },
-                                  child: const Text('Payment'),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _ActionCardButton(
+                                    icon: Icons.arrow_forward_rounded,
+                                    title: 'Proceed to Checkout',
+                                    subtitle: 'Review bill & payments',
+                                    gradient: [
+                                      colorScheme.secondary.withOpacity(0.95),
+                                      colorScheme.secondary,
+                                    ],
+                                    onTap: hasItems
+                                        ? () {
+                                            Navigator.pushNamed(
+                                              context,
+                                              '/bill-preview',
+                                              arguments: _buildBillPreviewArgs(
+                                                tax: tax,
+                                                service: service,
+                                                total: total,
+                                              ),
+                                            );
+                                          }
+                                        : null,
+                                  ),
                                 ),
                               ],
                             ),
@@ -485,6 +478,89 @@ class _CartItem {
     return _CartItem(
       item: item ?? this.item,
       quantity: quantity ?? this.quantity,
+    );
+  }
+}
+
+class _ActionCardButton extends StatelessWidget {
+  final VoidCallback? onTap;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final List<Color> gradient;
+
+  const _ActionCardButton({
+    required this.onTap,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.gradient,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDisabled = onTap == null;
+    final scheme = Theme.of(context).colorScheme;
+    final colors =
+        isDisabled ? [scheme.surfaceVariant, scheme.surfaceVariant] : gradient;
+
+    return AnimatedOpacity(
+      opacity: isDisabled ? 0.5 : 1,
+      duration: const Duration(milliseconds: 200),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: colors),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: isDisabled
+              ? null
+              : [
+                  BoxShadow(
+                    color: colors.last.withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
