@@ -66,7 +66,9 @@ class KitchenDashboardScreen extends StatelessWidget {
                           children: [
                             Text(
                               ticket.id,
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             Text(
                               ticket.time,

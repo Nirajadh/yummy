@@ -236,10 +236,7 @@ class DashboardOverview extends StatelessWidget {
     );
   }
 
-  void _handleMetricTap(
-    BuildContext context,
-    DashboardMetricEntity metric,
-  ) {
+  void _handleMetricTap(BuildContext context, DashboardMetricEntity metric) {
     if (onMetricTap != null) {
       onMetricTap!(context, metric);
     } else {

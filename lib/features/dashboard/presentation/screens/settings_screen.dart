@@ -16,7 +16,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _language = 'English';
 
   void _showSnack(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -53,7 +55,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: const Icon(Icons.palette_outlined),
             title: const Text('Theme'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showSnack(context, 'Theme settings tapped (UI only).'),
+            onTap: () =>
+                _showSnack(context, 'Theme settings tapped (UI only).'),
           ),
           const SizedBox(height: 8),
           _SectionHeader(title: 'Operations'),
@@ -100,7 +103,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final shouldLogout = await showLogoutConfirmationDialog(context);
               if (shouldLogout && context.mounted) {
                 Navigator.pushNamedAndRemoveUntil(
-                    context, '/login', (route) => false);
+                  context,
+                  '/login',
+                  (route) => false,
+                );
               }
             },
           ),
@@ -119,10 +125,7 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.labelLarge,
-      ),
+      child: Text(title, style: Theme.of(context).textTheme.labelLarge),
     );
   }
 }
