@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:yummy/features/dashboard/presentation/bloc/dashboard/dashboard_bloc.dart';
+import 'package:yummy/features/admin/presentation/bloc/admin_dashboard/admin_dashboard_bloc.dart';
 import 'package:yummy/features/orders/domain/entities/order_history_entry_entity.dart';
 
 class OrderHistoryScreen extends StatelessWidget {
@@ -47,7 +47,7 @@ class OrderHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dashboardState = context.watch<DashboardBloc>().state;
+    final dashboardState = context.watch<AdminDashboardBloc>().state;
     final orders = dashboardState.snapshot?.orderHistory ?? const [];
 
     return Scaffold(

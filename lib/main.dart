@@ -1,25 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:yummy/core/app_apis.dart';
+import 'package:yummy/features/admin/data/repositories/admin_repository_impl.dart';
+import 'package:yummy/features/admin/domain/usecases/get_admin_dashboard_snapshot_usecase.dart';
+import 'package:yummy/features/admin/presentation/bloc/admin_dashboard/admin_dashboard_bloc.dart';
+import 'package:yummy/features/admin/presentation/screens/admin_dashboard_shell.dart';
+import 'package:yummy/features/admin/presentation/screens/admin_more_screen.dart';
+import 'package:yummy/features/admin/presentation/screens/settings_screen.dart';
+import 'package:yummy/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:yummy/features/auth/data/repositories/auth_repository_impl.dart';
+
+import 'package:yummy/features/auth/domain/usecases/login_usecase.dart';
+import 'package:yummy/features/auth/domain/usecases/logout_usecase.dart';
+import 'package:yummy/features/auth/domain/usecases/register_usecase.dart';
+import 'package:yummy/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:yummy/features/auth/presentation/screens/login_screen.dart';
 import 'package:yummy/features/auth/presentation/screens/register_screen.dart';
+import 'package:yummy/features/auth/presentation/screens/user_profile_screen.dart';
 import 'package:yummy/features/common/data/datasources/local_dummy_data_source.dart';
 import 'package:yummy/features/common/data/repositories/restaurant_repository_impl.dart';
 import 'package:yummy/features/common/domain/repositories/restaurant_repository.dart';
-import 'package:yummy/features/dashboard/domain/usecases/get_dashboard_snapshot_usecase.dart';
-import 'package:yummy/features/dashboard/presentation/bloc/dashboard/dashboard_bloc.dart';
-import 'package:yummy/features/dashboard/presentation/screens/admin_dashboard_shell.dart';
-import 'package:yummy/features/dashboard/presentation/screens/admin_more_screen.dart';
-import 'package:yummy/features/dashboard/presentation/screens/kitchen_dashboard_screen.dart';
-import 'package:yummy/features/dashboard/presentation/screens/settings_screen.dart';
-import 'package:yummy/features/dashboard/presentation/screens/staff_dashboard_shell.dart';
+import 'package:yummy/features/finance/presentation/screens/expenses_screen.dart';
+import 'package:yummy/features/finance/presentation/screens/income_screen.dart';
+import 'package:yummy/features/finance/presentation/screens/purchase_screen.dart';
+import 'package:yummy/features/finance/presentation/screens/reports_screen.dart';
 import 'package:yummy/features/groups/domain/usecases/get_groups_usecase.dart';
 import 'package:yummy/features/groups/domain/usecases/toggle_group_status_usecase.dart';
 import 'package:yummy/features/groups/domain/usecases/upsert_group_usecase.dart';
 import 'package:yummy/features/groups/presentation/bloc/groups/groups_bloc.dart';
 import 'package:yummy/features/groups/presentation/screens/group_create_screen.dart';
 import 'package:yummy/features/groups/presentation/screens/groups_screen.dart';
-import 'package:yummy/features/kot/domain/usecases/get_kot_tickets_usecase.dart';
-import 'package:yummy/features/kot/presentation/bloc/kot/kot_bloc.dart';
+import 'package:yummy/features/kitchen/data/repositories/kitchen_repository_impl.dart';
+import 'package:yummy/features/kitchen/domain/usecases/get_kitchen_kot_tickets_usecase.dart';
+import 'package:yummy/features/kitchen/presentation/bloc/kitchen_kot/kitchen_kot_bloc.dart';
+import 'package:yummy/features/kitchen/presentation/screens/kitchen_dashboard_screen.dart';
 import 'package:yummy/features/menu/domain/usecases/get_menu_items_usecase.dart';
 import 'package:yummy/features/menu/domain/usecases/upsert_menu_item_usecase.dart';
 import 'package:yummy/features/menu/presentation/bloc/menu/menu_bloc.dart';
@@ -37,6 +51,11 @@ import 'package:yummy/features/orders/presentation/screens/orders_screen.dart';
 import 'package:yummy/features/orders/presentation/screens/pickup_order_screen.dart';
 import 'package:yummy/features/orders/presentation/screens/quick_billing_screen.dart';
 import 'package:yummy/features/staff/presentation/screens/staff_management_screen.dart';
+import 'package:yummy/features/staff_portal/data/repositories/staff_portal_repository_impl.dart';
+import 'package:yummy/features/staff_portal/domain/usecases/get_staff_active_orders_usecase.dart';
+import 'package:yummy/features/staff_portal/domain/usecases/get_staff_dashboard_snapshot_usecase.dart';
+import 'package:yummy/features/staff_portal/presentation/bloc/staff_dashboard/staff_dashboard_bloc.dart';
+import 'package:yummy/features/staff_portal/presentation/screens/staff_dashboard_shell.dart';
 import 'package:yummy/features/tables/domain/usecases/delete_table_usecase.dart';
 import 'package:yummy/features/tables/domain/usecases/get_tables_usecase.dart';
 import 'package:yummy/features/tables/domain/usecases/upsert_table_usecase.dart';
@@ -44,10 +63,7 @@ import 'package:yummy/features/tables/presentation/bloc/tables/tables_bloc.dart'
 import 'package:yummy/features/tables/presentation/models/tables_screen_args.dart';
 import 'package:yummy/features/tables/presentation/screens/table_order_screen.dart';
 import 'package:yummy/features/tables/presentation/screens/tables_screen.dart';
-import 'package:yummy/features/finance/presentation/screens/expenses_screen.dart';
-import 'package:yummy/features/finance/presentation/screens/income_screen.dart';
-import 'package:yummy/features/finance/presentation/screens/purchase_screen.dart';
-import 'package:yummy/features/finance/presentation/screens/reports_screen.dart';
+import 'package:yummy/core/services/shared_prefrences.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,29 +72,82 @@ void main() {
   final RestaurantRepository repository = RestaurantRepositoryImpl(
     local: dataSource,
   );
+  final appApis = AppApis();
+  final authRemoteDataSource = AuthRemoteDataSourceImpl(appApis: appApis);
+  final authRepository = AuthRepositoryImpl(
+    remoteDataSource: authRemoteDataSource,
+  );
+  final registerUsecase = RegisterUsecase(authRepository: authRepository);
+  final loginUsecase = LoginUsecase(authRepository: authRepository);
+  final logoutUsecase = LogoutUsecase(authRepository: authRepository);
+  final adminRepository = AdminRepositoryImpl(base: repository);
+  final staffRepository = StaffPortalRepositoryImpl(base: repository);
+  final kitchenRepository = KitchenRepositoryImpl(base: repository);
 
-  runApp(MyRestroApp(repository: repository));
+  runApp(
+    MyRestroApp(
+      repository: repository,
+      registerUsecase: registerUsecase,
+      loginUsecase: loginUsecase,
+      logoutUsecase: logoutUsecase,
+      adminDashboardUseCase: GetAdminDashboardSnapshotUseCase(adminRepository),
+      staffDashboardUseCase: GetStaffDashboardSnapshotUseCase(staffRepository),
+      staffActiveOrdersUseCase: GetStaffActiveOrdersUseCase(staffRepository),
+      kitchenKotTicketsUseCase: GetKitchenKotTicketsUseCase(kitchenRepository),
+    ),
+  );
 }
 
 class MyRestroApp extends StatelessWidget {
   final RestaurantRepository repository;
+  final RegisterUsecase registerUsecase;
+  final LoginUsecase loginUsecase;
+  final LogoutUsecase logoutUsecase;
+  final GetAdminDashboardSnapshotUseCase adminDashboardUseCase;
+  final GetStaffDashboardSnapshotUseCase staffDashboardUseCase;
+  final GetStaffActiveOrdersUseCase staffActiveOrdersUseCase;
+  final GetKitchenKotTicketsUseCase kitchenKotTicketsUseCase;
 
-  const MyRestroApp({super.key, required this.repository});
+  const MyRestroApp({
+    super.key,
+    required this.repository,
+    required this.registerUsecase,
+    required this.loginUsecase,
+    required this.logoutUsecase,
+    required this.adminDashboardUseCase,
+    required this.staffDashboardUseCase,
+    required this.staffActiveOrdersUseCase,
+    required this.kitchenKotTicketsUseCase,
+  });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: Colors.deepOrange,
+      seedColor: const Color.fromARGB(255, 5, 149, 244),
       brightness: Brightness.light,
+      contrastLevel: 0.8,
     );
     return RepositoryProvider.value(
       value: repository,
       child: MultiBlocProvider(
         providers: [
           BlocProvider(
-            create: (_) => DashboardBloc(
-              getDashboardSnapshot: GetDashboardSnapshotUseCase(repository),
-            )..add(const DashboardStarted()),
+            create: (_) => AuthBloc(
+              registerUsecase: registerUsecase,
+              loginUsecase: loginUsecase,
+              logoutUsecase: logoutUsecase,
+            ),
+          ),
+          BlocProvider(
+            create: (_) =>
+                AdminDashboardBloc(getSnapshot: adminDashboardUseCase)
+                  ..add(const AdminDashboardStarted()),
+          ),
+          BlocProvider(
+            create: (_) => StaffDashboardBloc(
+              getSnapshot: staffDashboardUseCase,
+              getActiveOrders: staffActiveOrdersUseCase,
+            )..add(const StaffDashboardStarted()),
           ),
           BlocProvider(
             create: (_) =>
@@ -107,8 +176,8 @@ class MyRestroApp extends StatelessWidget {
           ),
           BlocProvider(
             create: (_) =>
-                KotBloc(getKotTicketsUseCase: GetKotTicketsUseCase(repository))
-                  ..add(const KotRequested()),
+                KitchenKotBloc(getTickets: kitchenKotTicketsUseCase)
+                  ..add(const KitchenKotRequested()),
           ),
         ],
         child: MaterialApp(
@@ -119,14 +188,20 @@ class MyRestroApp extends StatelessWidget {
             colorScheme: colorScheme,
             scaffoldBackgroundColor: Colors.grey.shade50,
           ),
-          initialRoute: '/login',
+          initialRoute: '/',
           onGenerateRoute: (settings) {
             switch (settings.name) {
+              case '/':
+                return MaterialPageRoute(builder: (_) => const _LaunchScreen());
               case '/login':
                 return MaterialPageRoute(builder: (_) => const LoginScreen());
               case '/register':
                 return MaterialPageRoute(
                   builder: (_) => const RegisterScreen(),
+                );
+              case '/profile':
+                return MaterialPageRoute(
+                  builder: (_) => const UserProfileScreen(),
                 );
               case '/admin-dashboard':
                 return MaterialPageRoute(
@@ -251,5 +326,50 @@ class MyRestroApp extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Lightweight launch screen that routes based on persisted auth state.
+class _LaunchScreen extends StatefulWidget {
+  const _LaunchScreen();
+
+  @override
+  State<_LaunchScreen> createState() => _LaunchScreenState();
+}
+
+class _LaunchScreenState extends State<_LaunchScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    final storage = SecureStorageService();
+    final token = await storage.getValue(key: 'token');
+    final role = await storage.getValue(key: 'role');
+
+    if (!mounted) return;
+
+    if (token != null && token.isNotEmpty) {
+      switch ((role ?? '').toLowerCase()) {
+        case 'kitchen':
+          Navigator.pushReplacementNamed(context, '/kitchen-dashboard');
+          return;
+        case 'staff':
+          Navigator.pushReplacementNamed(context, '/staff-dashboard');
+          return;
+        default:
+          Navigator.pushReplacementNamed(context, '/admin-dashboard');
+          return;
+      }
+    }
+
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }

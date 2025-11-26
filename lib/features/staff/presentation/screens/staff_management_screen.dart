@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:yummy/core/app_apis.dart';
+import 'package:yummy/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:yummy/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:yummy/features/auth/domain/entities/user_entity.dart';
+import 'package:yummy/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:yummy/features/common/data/dummy_data.dart';
 
 class StaffManagementScreen extends StatefulWidget {
@@ -11,11 +16,14 @@ class StaffManagementScreen extends StatefulWidget {
 
 class _StaffManagementScreenState extends State<StaffManagementScreen> {
   late List<StaffMember> _staffMembers;
+  bool _loading = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _staffMembers = List.of(dummyStaffMembers);
+    _staffMembers = [];
+    _fetchUsers();
   }
 
   @override
@@ -48,6 +56,20 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (_loading) const LinearProgressIndicator(minHeight: 2),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Card(
+              color: Colors.orange.withValues(alpha: .12),
+              child: ListTile(
+                leading: const Icon(Icons.warning_amber_rounded),
+                title: Text(_error!),
+                subtitle: const Text(
+                  'Showing any locally added staff for now.',
+                ),
+              ),
+            ),
+          ],
           Row(
             children: [
               Expanded(
@@ -163,6 +185,59 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _fetchUsers() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final repo = AuthRepositoryImpl(
+        remoteDataSource: AuthRemoteDataSourceImpl(appApis: AppApis()),
+      );
+      final result = await repo.getAllUsers();
+      result.fold(
+        (failure) {
+          setState(() {
+            _error = failure.message;
+            _staffMembers = List.of(dummyStaffMembers);
+          });
+        },
+        (users) {
+          setState(() {
+            _staffMembers = _mapUsersToStaff(users);
+          });
+        },
+      );
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _staffMembers = List.of(dummyStaffMembers);
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  List<StaffMember> _mapUsersToStaff(List<UserEntity> users) {
+    return users.map((u) {
+      return StaffMember(
+        name: u.name,
+        role: u.role,
+        salary: 0,
+        phone: '',
+        email: u.email,
+        joinedDate: '—',
+        status: 'Active',
+        shift: 'Not set',
+        loginId: '',
+        tempPin: '',
+      );
+    }).toList();
   }
 }
 
@@ -377,9 +452,9 @@ class StaffFormSheet extends StatefulWidget {
 
 class _StaffFormSheetState extends State<StaffFormSheet> {
   static const _statuses = ['Active', 'On Leave', 'Inactive'];
+  static const _roles = ['staff', 'kitchen'];
 
   late final TextEditingController _nameController;
-  late final TextEditingController _roleController;
   late final TextEditingController _salaryController;
   late final TextEditingController _phoneController;
   late final TextEditingController _emailController;
@@ -388,14 +463,16 @@ class _StaffFormSheetState extends State<StaffFormSheet> {
   late final TextEditingController _notesController;
   late final TextEditingController _loginController;
   late final TextEditingController _pinController;
+  late String _role;
   late String _status;
+  bool _submitting = false;
+  StaffMember? _pendingStaff;
 
   @override
   void initState() {
     super.initState();
     final member = widget.member;
     _nameController = TextEditingController(text: member?.name ?? '');
-    _roleController = TextEditingController(text: member?.role ?? '');
     _salaryController = TextEditingController(
       text: member != null ? member.salary.toStringAsFixed(0) : '',
     );
@@ -406,13 +483,16 @@ class _StaffFormSheetState extends State<StaffFormSheet> {
     _notesController = TextEditingController(text: member?.notes ?? '');
     _loginController = TextEditingController(text: member?.loginId ?? '');
     _pinController = TextEditingController(text: member?.tempPin ?? '');
+    final existingRole = member?.role.toLowerCase();
+    _role = existingRole != null && _roles.contains(existingRole)
+        ? existingRole
+        : _roles.first;
     _status = member?.status ?? _statuses.first;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _roleController.dispose();
     _salaryController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
@@ -427,109 +507,155 @@ class _StaffFormSheetState extends State<StaffFormSheet> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.member != null;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade400,
-                borderRadius: BorderRadius.circular(8),
+    return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (_, __) => _submitting,
+      listener: (context, state) {
+        if (!_submitting) return;
+
+        if (state is AuthRegisterSuccess) {
+          if (_pendingStaff != null) {
+            widget.onSave(_pendingStaff!);
+          }
+          setState(() {
+            _submitting = false;
+            _pendingStaff = null;
+          });
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.registerEntity.message)));
+          Navigator.pop(context);
+        } else if (state is AuthFailure) {
+          setState(() {
+            _submitting = false;
+            _pendingStaff = null;
+          });
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.message)));
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
-            ),
-            Text(
-              isEditing ? 'Edit Staff' : 'Add Staff',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Full Name'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _roleController,
-              decoration: const InputDecoration(labelText: 'Role'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _salaryController,
-              decoration: const InputDecoration(
-                labelText: 'Salary (per month)',
+              Text(
+                isEditing ? 'Edit Staff' : 'Add Staff',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _status,
-              decoration: const InputDecoration(labelText: 'Status'),
-              items: _statuses
-                  .map(
-                    (status) =>
-                        DropdownMenuItem(value: status, child: Text(status)),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) setState(() => _status = value);
-              },
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _shiftController,
-              decoration: const InputDecoration(labelText: 'Shift'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _phoneController,
-              decoration: const InputDecoration(labelText: 'Phone'),
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email'),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _loginController,
-              decoration: const InputDecoration(
-                labelText: 'Login ID / Username',
+              const SizedBox(height: 16),
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: 'Full Name'),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _pinController,
-              decoration: const InputDecoration(
-                labelText: 'Temporary PIN / Password',
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _role,
+                decoration: const InputDecoration(labelText: 'Role'),
+                items: _roles
+                    .map(
+                      (role) =>
+                          DropdownMenuItem(value: role, child: Text(role)),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) setState(() => _role = value);
+                },
               ),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _joinedController,
-              decoration: const InputDecoration(
-                labelText: 'Joined (e.g. Jan 2022)',
+              const SizedBox(height: 12),
+              TextField(
+                controller: _salaryController,
+                decoration: const InputDecoration(
+                  labelText: 'Salary (per month)',
+                ),
+                keyboardType: TextInputType.number,
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _notesController,
-              decoration: const InputDecoration(labelText: 'Notes'),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: _handleSave,
-              child: Text(isEditing ? 'Save Changes' : 'Add Staff'),
-            ),
-          ],
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _status,
+                decoration: const InputDecoration(labelText: 'Status'),
+                items: _statuses
+                    .map(
+                      (status) =>
+                          DropdownMenuItem(value: status, child: Text(status)),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) setState(() => _status = value);
+                },
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _shiftController,
+                decoration: const InputDecoration(labelText: 'Shift'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _phoneController,
+                decoration: const InputDecoration(labelText: 'Phone'),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: 'Email'),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _loginController,
+                decoration: const InputDecoration(
+                  labelText: 'Login ID / Username',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _pinController,
+                decoration: const InputDecoration(
+                  labelText: 'Temporary PIN / Password',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _joinedController,
+                decoration: const InputDecoration(
+                  labelText: 'Joined (e.g. Jan 2022)',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _notesController,
+                decoration: const InputDecoration(labelText: 'Notes'),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: _submitting ? null : _handleSave,
+                child: _submitting
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(isEditing ? 'Save Changes' : 'Add Staff'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -537,44 +663,66 @@ class _StaffFormSheetState extends State<StaffFormSheet> {
 
   void _handleSave() {
     final salary = double.tryParse(_salaryController.text) ?? 0;
-    if (_nameController.text.trim().isEmpty ||
-        _roleController.text.trim().isEmpty ||
-        salary <= 0) {
+    final name = _nameController.text.trim();
+    final role = _roles.contains(_role) ? _role : _roles.first;
+    final email = _emailController.text.trim();
+    final password = _pinController.text.trim().isEmpty
+        ? '0000'
+        : _pinController.text.trim();
+
+    if (name.isEmpty || role.isEmpty || email.isEmpty || salary <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Name, role, and a valid salary are required.'),
+          content: Text(
+            'Name, role, email, password, and a valid salary are required.',
+          ),
         ),
       );
       return;
     }
 
-    widget.onSave(
-      StaffMember(
-        name: _nameController.text.trim(),
-        role: _roleController.text.trim(),
-        salary: salary,
-        phone: _phoneController.text.trim(),
-        email: _emailController.text.trim(),
-        joinedDate: _joinedController.text.trim().isEmpty
-            ? 'Today'
-            : _joinedController.text.trim(),
-        status: _status,
-        shift: _shiftController.text.trim().isEmpty
-            ? 'Not set'
-            : _shiftController.text.trim(),
-        notes: _notesController.text.trim().isEmpty
-            ? null
-            : _notesController.text.trim(),
-        loginId: _loginController.text.trim().isEmpty
-            ? 'user${DateTime.now().millisecondsSinceEpoch}'
-            : _loginController.text.trim(),
-        tempPin: _pinController.text.trim().isEmpty
-            ? '0000'
-            : _pinController.text.trim(),
-      ),
+    final newMember = StaffMember(
+      name: name,
+      role: role,
+      salary: salary,
+      phone: _phoneController.text.trim(),
+      email: email,
+      joinedDate: _joinedController.text.trim().isEmpty
+          ? 'Today'
+          : _joinedController.text.trim(),
+      status: _status,
+      shift: _shiftController.text.trim().isEmpty
+          ? 'Not set'
+          : _shiftController.text.trim(),
+      notes: _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim(),
+      loginId: _loginController.text.trim().isEmpty
+          ? 'user${DateTime.now().millisecondsSinceEpoch}'
+          : _loginController.text.trim(),
+      tempPin: password,
     );
 
-    Navigator.pop(context);
+    if (widget.member != null) {
+      widget.onSave(newMember);
+      Navigator.pop(context);
+      return;
+    }
+
+    setState(() {
+      _pendingStaff = newMember;
+      _submitting = true;
+    });
+
+    context.read<AuthBloc>().add(
+      RegisterRequested(
+        name: newMember.name,
+        email: newMember.email,
+        password: newMember.tempPin,
+        confirmPassword: newMember.tempPin,
+        role: newMember.role,
+      ),
+    );
   }
 }
 

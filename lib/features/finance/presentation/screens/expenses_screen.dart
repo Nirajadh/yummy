@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:yummy/features/dashboard/presentation/bloc/dashboard/dashboard_bloc.dart';
+import 'package:yummy/features/admin/presentation/bloc/admin_dashboard/admin_dashboard_bloc.dart';
 import 'package:yummy/features/finance/domain/entities/expense_entry_entity.dart';
 
 class ExpensesScreen extends StatelessWidget {
@@ -8,8 +8,12 @@ class ExpensesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final expenses =
-        context.watch<DashboardBloc>().state.snapshot?.expenses ?? const <ExpenseEntryEntity>[];
+    final expenses = context
+            .watch<AdminDashboardBloc>()
+            .state
+            .snapshot
+            ?.expenses ??
+        const <ExpenseEntryEntity>[];
     final total = expenses.fold<double>(0, (sum, expense) => sum + expense.amount);
     final average = expenses.isEmpty ? 0.0 : total / expenses.length;
     final categories = _categoryTotals(expenses);

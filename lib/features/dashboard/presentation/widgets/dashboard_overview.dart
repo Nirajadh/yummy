@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:yummy/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:yummy/features/auth/presentation/widgets/logout_confirmation_dialog.dart';
 import 'package:yummy/features/dashboard/domain/entities/dashboard_metric_entity.dart';
 import 'package:yummy/features/finance/domain/entities/expense_entry_entity.dart';
@@ -55,6 +57,11 @@ class DashboardOverview extends StatelessWidget {
         title: Text(title),
         automaticallyImplyLeading: automaticallyImplyLeading,
         actions: [
+          IconButton(
+            tooltip: 'Profile',
+            icon: const Icon(Icons.account_circle_outlined),
+            onPressed: () => Navigator.pushNamed(context, '/profile'),
+          ),
           ...actions,
           IconButton(
             tooltip: 'Logout',
@@ -249,6 +256,7 @@ class DashboardOverview extends StatelessWidget {
   Future<void> _handleLogout(BuildContext context) async {
     final shouldLogout = await showLogoutConfirmationDialog(context);
     if (shouldLogout && context.mounted) {
+      context.read<AuthBloc>().add(const LogoutRequested());
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     }
   }
