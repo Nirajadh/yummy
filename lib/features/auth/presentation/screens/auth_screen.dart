@@ -21,6 +21,24 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _rememberMe = false;
   AuthTab _selectedTab = AuthTab.login;
 
+  void _switchToLogin() {
+    setState(() {
+      _selectedTab = AuthTab.login;
+      _passwordController.clear();
+      _confirmController.clear();
+    });
+  }
+
+  void _switchToSignUp() {
+    setState(() {
+      _selectedTab = AuthTab.signUp;
+      _nameController.clear();
+      _emailController.clear();
+      _passwordController.clear();
+      _confirmController.clear();
+    });
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -176,12 +194,8 @@ class _AuthScreenState extends State<AuthScreen> {
                             children: [
                               AuthTabs(
                                 selected: _selectedTab,
-                                onLoginTap: () => setState(
-                                  () => _selectedTab = AuthTab.login,
-                                ),
-                                onSignUpTap: () => setState(
-                                  () => _selectedTab = AuthTab.signUp,
-                                ),
+                                onLoginTap: _switchToLogin,
+                                onSignUpTap: _switchToSignUp,
                               ),
                               const SizedBox(height: 18),
                               if (_selectedTab == AuthTab.signUp) ...[
