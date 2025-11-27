@@ -47,12 +47,12 @@ class _BillPreviewScreenState extends State<BillPreviewScreen> {
     );
     String method = 'Cash';
 
-    double _calcChange(double amount, String tenderText) {
+    double calcChange(double amount, String tenderText) {
       final tendered = double.tryParse(tenderText) ?? 0;
       return tendered > amount ? tendered - amount : 0;
     }
 
-    double changePreview = _calcChange(billAmount, tenderController.text);
+    double changePreview = calcChange(billAmount, tenderController.text);
     String? selectedTarget = _targets.isNotEmpty ? _targets.first : null;
 
     showModalBottomSheet<void>(
@@ -98,7 +98,7 @@ class _BillPreviewScreenState extends State<BillPreviewScreen> {
               if (_targets.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: selectedTarget,
+                  initialValue: selectedTarget,
                   decoration: const InputDecoration(labelText: 'Paying for'),
                   items: _targets
                       .map((t) => DropdownMenuItem(value: t, child: Text(t)))
@@ -107,7 +107,7 @@ class _BillPreviewScreenState extends State<BillPreviewScreen> {
                     if (value != null) {
                       setModalState(() {
                         selectedTarget = value;
-                        changePreview = _calcChange(
+                        changePreview = calcChange(
                           billAmount,
                           tenderController.text,
                         );
@@ -145,10 +145,7 @@ class _BillPreviewScreenState extends State<BillPreviewScreen> {
                   fillColor: Color(0xFFF1F5FF),
                 ),
                 onChanged: (_) => setModalState(() {
-                  changePreview = _calcChange(
-                    billAmount,
-                    tenderController.text,
-                  );
+                  changePreview = calcChange(billAmount, tenderController.text);
                 }),
               ),
               const SizedBox(height: 8),
@@ -164,7 +161,7 @@ class _BillPreviewScreenState extends State<BillPreviewScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: method,
+                initialValue: method,
                 decoration: const InputDecoration(labelText: 'Method'),
                 items: const [
                   DropdownMenuItem(value: 'Cash', child: Text('Cash')),
@@ -188,10 +185,7 @@ class _BillPreviewScreenState extends State<BillPreviewScreen> {
                   final payer = payerController.text.trim().isEmpty
                       ? 'Guest'
                       : payerController.text.trim();
-                  final double change = _calcChange(
-                    _due,
-                    tenderController.text,
-                  );
+                  final double change = calcChange(_due, tenderController.text);
                   setState(() {
                     _paid =
                         (_paid + amount).clamp(0, widget.args.grandTotal)

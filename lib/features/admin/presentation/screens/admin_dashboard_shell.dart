@@ -34,8 +34,8 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
   Widget build(BuildContext context) {
     final safeIndex = _index >= _pages.length ? _pages.length - 1 : _index;
     return Scaffold(
-      body: WillPopScope(
-        onWillPop: () async => false,
+      body: PopScope(
+        canPop: false,
         child: IndexedStack(index: safeIndex, children: _pages),
       ),
       bottomNavigationBar: NavigationBar(

@@ -61,7 +61,9 @@ Future<void> showPersonOrderSheet({
               return Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceVariant
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
                       .withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(12),
                 ),

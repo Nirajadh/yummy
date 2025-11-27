@@ -1,5 +1,5 @@
-import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/features/admin/domain/usecases/get_admin_dashboard_snapshot_usecase.dart';
 import 'package:yummy/features/dashboard/domain/entities/dashboard_snapshot.dart';
 
@@ -11,8 +11,8 @@ class AdminDashboardBloc
   final GetAdminDashboardSnapshotUseCase _getSnapshot;
 
   AdminDashboardBloc({required GetAdminDashboardSnapshotUseCase getSnapshot})
-      : _getSnapshot = getSnapshot,
-        super(const AdminDashboardState()) {
+    : _getSnapshot = getSnapshot,
+      super(const AdminDashboardState()) {
     on<AdminDashboardStarted>(_onStarted);
     on<AdminDashboardRefreshed>(_onStarted);
   }

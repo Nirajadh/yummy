@@ -1,7 +1,7 @@
-abstract interface class UseCaseWithParams<Type, Params> {
+abstract interface class UseCaseWithParams<type, Params> {
   Future<Type> call(Params params);
 }
 
-abstract interface class UseCaseWithoutParams<Type> {
+abstract interface class UseCaseWithoutParams<type> {
   Future<Type> call();
 }

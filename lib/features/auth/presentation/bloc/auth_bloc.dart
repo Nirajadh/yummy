@@ -1,5 +1,5 @@
-import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/features/auth/domain/entities/login_entity.dart';
 import 'package:yummy/features/auth/domain/entities/register_entity.dart';
 import 'package:yummy/features/auth/domain/entities/admin_register_entity.dart';
@@ -44,10 +44,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (failure) async => emit(AuthFailure(message: failure.message)),
       (loginEntity) async {
         emit(
-          AuthLoginSuccess(
-            loginEntity: loginEntity,
-            role: loginEntity.role,
-          ),
+          AuthLoginSuccess(loginEntity: loginEntity, role: loginEntity.role),
         );
       },
     );
@@ -89,9 +86,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await adminRegisterUsecase(params);
     result.fold(
       (failure) => emit(AuthFailure(message: failure.message)),
-      (adminEntity) => emit(
-        AuthAdminRegisterSuccess(adminRegisterEntity: adminEntity),
-      ),
+      (adminEntity) =>
+          emit(AuthAdminRegisterSuccess(adminRegisterEntity: adminEntity)),
     );
   }
 

@@ -47,12 +47,15 @@ class AuthTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bg =
-        isDark ? theme.colorScheme.surface.withOpacity(0.25) : Colors.white;
-    final indicatorColor =
-        isDark ? theme.colorScheme.primary.withOpacity(0.25) : Colors.white;
-    final shadowColor =
-        isDark ? Colors.black.withOpacity(0.35) : const Color(0x15000000);
+    final bg = isDark
+        ? theme.colorScheme.surface.withValues(alpha: 0.25)
+        : Colors.white;
+    final indicatorColor = isDark
+        ? theme.colorScheme.primary.withValues(alpha: 0.25)
+        : Colors.white;
+    final shadowColor = isDark
+        ? Colors.black.withValues(alpha: 0.35)
+        : const Color(0x15000000);
 
     return Container(
       height: 48,
@@ -139,7 +142,7 @@ class _AuthSegmentButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final activeColor = theme.colorScheme.onSurface;
-    final inactiveColor = theme.colorScheme.onSurface.withOpacity(0.6);
+    final inactiveColor = theme.colorScheme.onSurface.withValues(alpha: 0.6);
     return Padding(
       padding: const EdgeInsets.all(5),
       child: AnimatedContainer(
@@ -153,7 +156,7 @@ class _AuthSegmentButton extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             splashFactory: NoSplash.splashFactory,
-            overlayColor: MaterialStateProperty.all(Colors.transparent),
+            overlayColor: WidgetStateProperty.all(Colors.transparent),
             highlightColor: Colors.transparent,
             splashColor: Colors.transparent,
             onTap: onTap,
@@ -308,8 +311,8 @@ class AuthBackground extends StatelessWidget {
     final primary = theme.colorScheme.primary;
     final secondary = Color.lerp(primary, Colors.black, 0.35) ?? primary;
     final gridColor = theme.brightness == Brightness.dark
-        ? Colors.white.withOpacity(0.08)
-        : Colors.white.withOpacity(0.05);
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.white.withValues(alpha: 0.05);
     return Stack(
       children: [
         Positioned.fill(
@@ -350,7 +353,7 @@ class _GridPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    final dotsPaint = Paint()..color = color.withOpacity(0.6);
+    final dotsPaint = Paint()..color = color.withValues(alpha: 0.6);
     const dots = [
       Offset(40, 60),
       Offset(140, 120),

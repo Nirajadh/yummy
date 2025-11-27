@@ -35,7 +35,9 @@ class IncomeScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   children: [
                     Card(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Row(
@@ -58,27 +60,36 @@ class IncomeScreen extends StatelessWidget {
                         ),
                       )
                     else
-                      ...income
-                          .map(
-                            (inc) => Card(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              margin: const EdgeInsets.only(bottom: 12),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: Colors.green.withValues(alpha: .12),
-                                  child: const Icon(Icons.trending_up, color: Colors.green),
-                                ),
-                                title: Text(inc.source),
-                                subtitle: Text('${inc.type} • ${inc.date}\n${inc.note}'),
-                                isThreeLine: true,
-                                trailing: Text(
-                                  _currency(inc.amount),
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
+                      ...income.map(
+                        (inc) => Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.green.withValues(
+                                alpha: .12,
+                              ),
+                              child: const Icon(
+                                Icons.trending_up,
+                                color: Colors.green,
                               ),
                             ),
-                          )
-                          .toList(),
+                            title: Text(inc.source),
+                            subtitle: Text(
+                              '${inc.type} • ${inc.date}\n${inc.note}',
+                            ),
+                            isThreeLine: true,
+                            trailing: Text(
+                              _currency(inc.amount),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
         );
@@ -87,7 +98,9 @@ class IncomeScreen extends StatelessWidget {
   }
 
   void _showSnack(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -105,7 +118,10 @@ class _Stat extends StatelessWidget {
         children: [
           Text(label, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );

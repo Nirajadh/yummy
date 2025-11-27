@@ -5,7 +5,7 @@ import 'package:yummy/core/mapper/auth_mapper/admin_register_mapper.dart';
 import 'package:yummy/core/mapper/auth_mapper/login_model_mapper.dart';
 import 'package:yummy/core/mapper/auth_mapper/register_mapper.dart';
 import 'package:yummy/core/services/shared_prefrences.dart';
-import 'package:yummy/features/auth/data/models/admin_register_model.dart';
+
 import 'package:yummy/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:yummy/features/auth/data/models/login_model.dart';
 import 'package:yummy/features/auth/data/models/user_model.dart';
@@ -115,8 +115,14 @@ class AuthRepositoryImpl implements AuthRepository {
           value: entity.accessToken,
         );
         await SecureStorageService().setValue(key: 'role', value: entity.role);
-        await SecureStorageService().setValue(key: 'email', value: entity.email);
-        await SecureStorageService().setValue(key: 'user_name', value: entity.name);
+        await SecureStorageService().setValue(
+          key: 'email',
+          value: entity.email,
+        );
+        await SecureStorageService().setValue(
+          key: 'user_name',
+          value: entity.name,
+        );
       }
       return Right(entity);
     } on ServerException catch (e) {

@@ -114,7 +114,8 @@ Future<void> showGroupCartSheet({
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: colorScheme.surfaceVariant.withValues(alpha: 0.4),
+                          color: colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.4),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -162,7 +163,8 @@ Future<void> showGroupCartSheet({
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceVariant.withValues(alpha: 0.5),
+                color: colorScheme.surfaceContainerHighest
+                    .withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(

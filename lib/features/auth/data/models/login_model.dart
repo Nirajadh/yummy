@@ -1,22 +1,18 @@
-/// DTO for BaseResponse<LoginResponse>
 class LoginModel {
   final String? status;
   final String message;
   final LoginData? data;
 
-  LoginModel({
-    this.status,
-    required this.message,
-    this.data,
-  });
+  LoginModel({this.status, required this.message, this.data});
 
   factory LoginModel.fromJson(Map<String, dynamic> json) {
     final dataJson = json['data'];
     return LoginModel(
       status: json['status']?.toString(),
       message: json['message']?.toString() ?? '',
-      data:
-          dataJson is Map<String, dynamic> ? LoginData.fromJson(dataJson) : null,
+      data: dataJson is Map<String, dynamic>
+          ? LoginData.fromJson(dataJson)
+          : null,
     );
   }
 }

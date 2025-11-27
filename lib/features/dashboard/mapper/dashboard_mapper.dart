@@ -12,7 +12,7 @@ class DashboardMapper {
         model.iconCodePoint ?? Icons.help_outline.codePoint,
         fontFamily: 'MaterialIcons',
       ),
-      color: Color(model.colorValue ?? Colors.grey.value),
+      color: Color(model.colorValue ?? Colors.grey.toARGB32()),
     );
   }
 
@@ -22,7 +22,7 @@ class DashboardMapper {
       value: entity.value,
       trend: entity.trend,
       iconCodePoint: entity.icon.codePoint,
-      colorValue: entity.color.value,
+      colorValue: entity.color.toARGB32(),
     );
   }
 }

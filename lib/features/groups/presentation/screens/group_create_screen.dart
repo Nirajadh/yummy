@@ -83,7 +83,7 @@ class _GroupCreateScreenState extends State<GroupCreateScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _type,
+                initialValue: _type,
                 items: const [
                   DropdownMenuItem(value: 'Birthday', child: Text('Birthday')),
                   DropdownMenuItem(value: 'Office', child: Text('Office')),

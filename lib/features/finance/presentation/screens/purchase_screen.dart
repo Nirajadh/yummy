@@ -25,7 +25,8 @@ class PurchaseScreen extends StatelessWidget {
             automaticallyImplyLeading: false,
           ),
           floatingActionButton: FloatingActionButton.extended(
-            onPressed: () => _showSnack(context, 'New purchase flow coming soon'),
+            onPressed: () =>
+                _showSnack(context, 'New purchase flow coming soon'),
             icon: const Icon(Icons.add_shopping_cart_outlined),
             label: const Text('Add Purchase'),
           ),
@@ -35,7 +36,9 @@ class PurchaseScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   children: [
                     Card(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Row(
@@ -44,7 +47,10 @@ class PurchaseScreen extends StatelessWidget {
                             const SizedBox(width: 16),
                             _Stat(label: 'Average', value: _currency(average)),
                             const SizedBox(width: 16),
-                            _Stat(label: 'Entries', value: '${purchases.length}'),
+                            _Stat(
+                              label: 'Entries',
+                              value: '${purchases.length}',
+                            ),
                           ],
                         ),
                       ),
@@ -58,28 +64,36 @@ class PurchaseScreen extends StatelessWidget {
                         ),
                       )
                     else
-                      ...purchases
-                          .map(
-                            (purchase) => Card(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              margin: const EdgeInsets.only(bottom: 12),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: Colors.indigo.withValues(alpha: .12),
-                                  child: const Icon(Icons.shopping_bag_outlined, color: Colors.indigo),
-                                ),
-                                title: Text(purchase.vendor),
-                                subtitle:
-                                    Text('${purchase.category} • ${purchase.reference}\n${purchase.date}'),
-                                isThreeLine: true,
-                                trailing: Text(
-                                  _currency(purchase.amount),
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
+                      ...purchases.map(
+                        (purchase) => Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.indigo.withValues(
+                                alpha: .12,
+                              ),
+                              child: const Icon(
+                                Icons.shopping_bag_outlined,
+                                color: Colors.indigo,
                               ),
                             ),
-                          )
-                          .toList(),
+                            title: Text(purchase.vendor),
+                            subtitle: Text(
+                              '${purchase.category} • ${purchase.reference}\n${purchase.date}',
+                            ),
+                            isThreeLine: true,
+                            trailing: Text(
+                              _currency(purchase.amount),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
         );
@@ -88,7 +102,9 @@ class PurchaseScreen extends StatelessWidget {
   }
 
   void _showSnack(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -106,7 +122,10 @@ class _Stat extends StatelessWidget {
         children: [
           Text(label, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );

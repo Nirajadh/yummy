@@ -139,10 +139,10 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                           ),
                           const SizedBox(height: 10),
-                          Text(
-                            'Create an account or log in to explore about our app',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
+                            Text(
+                              'Create an account or log in to explore about our app',
+                              style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
                               fontSize: 14,
                               height: 1.4,
                             ),

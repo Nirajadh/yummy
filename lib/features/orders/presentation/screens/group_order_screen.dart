@@ -73,18 +73,19 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
     _people = List.of(_args.people);
     _maxPeople = _args.peopleCount;
     _isActive = _args.isActive;
-    _history = (dummy.groupOrderHistory[_args.groupName] ??
-            const <dummy.OrderHistoryEntry>[])
-        .map(
-          (entry) => OrderHistoryEntryEntity(
-            id: entry.id,
-            type: entry.type,
-            amount: entry.amount,
-            status: entry.status,
-            timestamp: entry.timestamp,
-          ),
-        )
-        .toList();
+    _history =
+        (dummy.groupOrderHistory[_args.groupName] ??
+                const <dummy.OrderHistoryEntry>[])
+            .map(
+              (entry) => OrderHistoryEntryEntity(
+                id: entry.id,
+                type: entry.type,
+                amount: entry.amount,
+                status: entry.status,
+                timestamp: entry.timestamp,
+              ),
+            )
+            .toList();
     _orderLines = _history
         .map(
           (entry) => GroupOrderLine(
@@ -376,6 +377,8 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
       arguments: OrderScreenArgs(contextLabel: 'Group: ${_args.groupName}'),
     );
 
+    if (!mounted) return;
+
     final bool sentToKitchen = result is OrderScreenResult
         ? result.sentToKitchen
         : result == true;
@@ -400,7 +403,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
       text: initialDue > 0 ? initialDue.toStringAsFixed(2) : '',
     );
 
-    void _syncAmount(StateSetter setModalState) {
+    void syncAmount(StateSetter setModalState) {
       final due = _targetDue(
         addNewPerson ? newPersonNameController.text.trim() : target,
       );
@@ -450,7 +453,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: addNewPerson ? 'ADD_NEW' : target,
+                  initialValue: addNewPerson ? 'ADD_NEW' : target,
                   decoration: const InputDecoration(labelText: 'Assign to'),
                   items: [
                     const DropdownMenuItem(value: 'All', child: Text('All')),
@@ -477,7 +480,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
                         addNewPerson = false;
                         target = value;
                       }
-                      _syncAmount(setModalState);
+                      syncAmount(setModalState);
                     });
                   },
                 ),
@@ -486,7 +489,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
                   TextField(
                     controller: newPersonNameController,
                     decoration: const InputDecoration(labelText: 'Person name'),
-                    onChanged: (_) => _syncAmount(setModalState),
+                    onChanged: (_) => syncAmount(setModalState),
                   ),
                   const SizedBox(height: 8),
                   TextField(
@@ -583,7 +586,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
     bool addNewPerson = false;
     String method = 'Cash';
 
-    void _syncAmount(StateSetter setModalState) {
+    void syncAmount(StateSetter setModalState) {
       final due = _targetDue(addNewPerson ? newPayerController.text : target);
       setModalState(() {
         amountController.text = due.toStringAsFixed(2);
@@ -627,7 +630,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
                 const SizedBox(height: 12),
                 if (_paymentTargets.isNotEmpty && !lockTarget)
                   DropdownButtonFormField<String>(
-                    value: addNewPerson ? 'ADD_NEW' : target,
+                    initialValue: addNewPerson ? 'ADD_NEW' : target,
                     decoration: const InputDecoration(labelText: 'Paying for'),
                     items: [
                       ..._paymentTargets.map(
@@ -652,7 +655,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
                           addNewPerson = false;
                           target = value;
                         }
-                        _syncAmount(setModalState);
+                        syncAmount(setModalState);
                       });
                     },
                   ),
@@ -663,7 +666,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
                     decoration: const InputDecoration(
                       labelText: 'New person name',
                     ),
-                    onChanged: (_) => _syncAmount(setModalState),
+                    onChanged: (_) => syncAmount(setModalState),
                   ),
                 ],
                 if (lockTarget && target != null && !addNewPerson) ...[
@@ -692,7 +695,7 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: method,
+                  initialValue: method,
                   decoration: const InputDecoration(labelText: 'Method'),
                   items: const [
                     DropdownMenuItem(value: 'Cash', child: Text('Cash')),
@@ -783,10 +786,11 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
         Navigator.pop(context, _currentGroupInfo());
-        return false;
       },
       child: Scaffold(
         appBar: AppBar(

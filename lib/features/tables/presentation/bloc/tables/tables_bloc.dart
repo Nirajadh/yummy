@@ -1,5 +1,5 @@
-import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/features/tables/domain/entities/table_entity.dart';
 import 'package:yummy/features/tables/domain/usecases/delete_table_usecase.dart';
 import 'package:yummy/features/tables/domain/usecases/get_tables_usecase.dart';
@@ -17,10 +17,10 @@ class TablesBloc extends Bloc<TablesEvent, TablesState> {
     required GetTablesUseCase getTables,
     required UpsertTableUseCase upsertTable,
     required DeleteTableUseCase deleteTable,
-  })  : _getTables = getTables,
-        _upsertTable = upsertTable,
-        _deleteTable = deleteTable,
-        super(const TablesState()) {
+  }) : _getTables = getTables,
+       _upsertTable = upsertTable,
+       _deleteTable = deleteTable,
+       super(const TablesState()) {
     on<TablesRequested>(_onRequested);
     on<TableSaved>(_onSaved);
     on<TableDeleted>(_onDeleted);
@@ -44,18 +44,12 @@ class TablesBloc extends Bloc<TablesEvent, TablesState> {
     }
   }
 
-  Future<void> _onSaved(
-    TableSaved event,
-    Emitter<TablesState> emit,
-  ) async {
+  Future<void> _onSaved(TableSaved event, Emitter<TablesState> emit) async {
     await _upsertTable(event.table);
     add(const TablesRequested());
   }
 
-  Future<void> _onDeleted(
-    TableDeleted event,
-    Emitter<TablesState> emit,
-  ) async {
+  Future<void> _onDeleted(TableDeleted event, Emitter<TablesState> emit) async {
     await _deleteTable(event.tableName);
     add(const TablesRequested());
   }

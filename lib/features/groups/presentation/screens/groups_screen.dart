@@ -55,6 +55,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
       ),
     );
 
+    if (!mounted) return;
     if (result is GroupEntity) {
       context.read<GroupsBloc>().add(GroupSaved(result));
     }

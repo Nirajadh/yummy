@@ -621,7 +621,7 @@ const dummyGroups = <GroupInfo>[
     contactPhone: '555-0101',
     type: 'Friends',
     notes: 'Prefers window seats',
-    people: const [
+    people: [
       GroupPerson(name: 'Nora', phone: '555-0101'),
       GroupPerson(name: 'Dev', phone: '555-0102'),
       GroupPerson(name: 'Ishaan'),
@@ -635,7 +635,7 @@ const dummyGroups = <GroupInfo>[
     contactPhone: '555-0123',
     type: 'Office',
     notes: 'Corporate account',
-    people: const [
+    people: [
       GroupPerson(name: 'Manu', phone: '555-0123'),
       GroupPerson(name: 'Sara'),
       GroupPerson(name: 'Vikram'),
@@ -649,7 +649,7 @@ const dummyGroups = <GroupInfo>[
     contactName: 'Priya',
     contactPhone: '555-0156',
     type: 'Family',
-    people: const [
+    people: [
       GroupPerson(name: 'Priya', phone: '555-0156'),
       GroupPerson(name: 'Arjun'),
       GroupPerson(name: 'Meera'),
@@ -662,7 +662,7 @@ const dummyGroups = <GroupInfo>[
     contactName: 'Evelyn',
     contactPhone: '555-0198',
     type: 'Birthday',
-    people: const [
+    people: [
       GroupPerson(name: 'Evelyn', phone: '555-0198'),
       GroupPerson(name: 'Chloe'),
       GroupPerson(name: 'Grace'),
@@ -674,7 +674,7 @@ const dummyGroups = <GroupInfo>[
     contactName: 'Leo',
     contactPhone: '555-0112',
     type: 'Friends',
-    people: const [
+    people: [
       GroupPerson(name: 'Leo', phone: '555-0112'),
       GroupPerson(name: 'Aaron'),
       GroupPerson(name: 'Mina'),
@@ -687,7 +687,7 @@ const dummyGroups = <GroupInfo>[
     contactPhone: '555-0001',
     type: 'Office',
     isActive: false,
-    people: const [
+    people: [
       GroupPerson(name: 'Alex', phone: '555-0001'),
       GroupPerson(name: 'Jamie'),
     ],
@@ -699,7 +699,7 @@ const dummyGroups = <GroupInfo>[
     contactPhone: '555-0002',
     type: 'Family',
     isActive: false,
-    people: const [
+    people: [
       GroupPerson(name: 'Sia', phone: '555-0002'),
       GroupPerson(name: 'Ken'),
     ],

@@ -15,7 +15,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _emailSummaries = false;
   bool _autoBackup = true;
   bool _kitchenSound = true;
-  String _language = 'English';
+  final String _language = 'English';
 
   void _showSnack(BuildContext context, String message) {
     ScaffoldMessenger.of(

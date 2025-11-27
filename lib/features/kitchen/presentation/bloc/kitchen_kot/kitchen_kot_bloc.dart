@@ -1,5 +1,5 @@
-import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/features/kitchen/domain/usecases/get_kitchen_kot_tickets_usecase.dart';
 import 'package:yummy/features/kot/domain/entities/kot_ticket_entity.dart';
 
@@ -10,8 +10,8 @@ class KitchenKotBloc extends Bloc<KitchenKotEvent, KitchenKotState> {
   final GetKitchenKotTicketsUseCase _getTickets;
 
   KitchenKotBloc({required GetKitchenKotTicketsUseCase getTickets})
-      : _getTickets = getTickets,
-        super(const KitchenKotState()) {
+    : _getTickets = getTickets,
+      super(const KitchenKotState()) {
     on<KitchenKotRequested>(_onRequested);
   }
 
@@ -22,12 +22,7 @@ class KitchenKotBloc extends Bloc<KitchenKotEvent, KitchenKotState> {
     emit(state.copyWith(status: KitchenKotStatus.loading));
     try {
       final tickets = await _getTickets();
-      emit(
-        state.copyWith(
-          status: KitchenKotStatus.success,
-          tickets: tickets,
-        ),
-      );
+      emit(state.copyWith(status: KitchenKotStatus.success, tickets: tickets));
     } catch (e) {
       emit(
         state.copyWith(

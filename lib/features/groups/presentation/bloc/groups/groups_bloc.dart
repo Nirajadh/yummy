@@ -1,5 +1,5 @@
-import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:yummy/features/groups/domain/entities/group_entity.dart';
 import 'package:yummy/features/groups/domain/usecases/get_groups_usecase.dart';
@@ -18,10 +18,10 @@ class GroupsBloc extends Bloc<GroupsEvent, GroupsState> {
     required GetGroupsUseCase getGroups,
     required UpsertGroupUseCase upsertGroup,
     required ToggleGroupStatusUseCase toggleGroupStatus,
-  })  : _getGroups = getGroups,
-        _upsertGroup = upsertGroup,
-        _toggleGroupStatus = toggleGroupStatus,
-        super(const GroupsState()) {
+  }) : _getGroups = getGroups,
+       _upsertGroup = upsertGroup,
+       _toggleGroupStatus = toggleGroupStatus,
+       super(const GroupsState()) {
     on<GroupsRequested>(_onRequested);
     on<GroupSaved>(_onSaved);
     on<GroupStatusToggled>(_onStatusToggled);
@@ -34,12 +34,7 @@ class GroupsBloc extends Bloc<GroupsEvent, GroupsState> {
     emit(state.copyWith(status: GroupsStatus.loading));
     try {
       final groups = await _getGroups();
-      emit(
-        state.copyWith(
-          status: GroupsStatus.success,
-          groups: groups,
-        ),
-      );
+      emit(state.copyWith(status: GroupsStatus.success, groups: groups));
     } catch (e) {
       emit(
         state.copyWith(
@@ -50,10 +45,7 @@ class GroupsBloc extends Bloc<GroupsEvent, GroupsState> {
     }
   }
 
-  Future<void> _onSaved(
-    GroupSaved event,
-    Emitter<GroupsState> emit,
-  ) async {
+  Future<void> _onSaved(GroupSaved event, Emitter<GroupsState> emit) async {
     await _upsertGroup(event.group);
     add(const GroupsRequested());
   }

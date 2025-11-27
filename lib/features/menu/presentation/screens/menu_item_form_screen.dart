@@ -55,8 +55,9 @@ class _MenuItemFormScreenState extends State<MenuItemFormScreen> {
       final routeArgs = ModalRoute.of(context)?.settings.arguments;
       if (routeArgs is MenuItemFormArgs) {
         _nameController.text = routeArgs.name;
-        if (routeArgs.price != 0)
+        if (routeArgs.price != 0) {
           _priceController.text = routeArgs.price.toString();
+        }
         _descriptionController.text = routeArgs.description;
         _category = routeArgs.category;
         _imageController.text = routeArgs.imageUrl;
@@ -123,7 +124,7 @@ class _MenuItemFormScreenState extends State<MenuItemFormScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _category,
+                initialValue: _category,
                 decoration: const InputDecoration(labelText: 'Category'),
                 items: menuCategories
                     .where((c) => c != 'All')

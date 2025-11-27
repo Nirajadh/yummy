@@ -1,4 +1,4 @@
-import 'package:bloc/bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:yummy/features/menu/domain/entities/menu_item_entity.dart';
 
@@ -15,8 +15,7 @@ class OrderCartCubit extends Cubit<OrderCartState> {
     final updated = Map<String, OrderCartItem>.from(state.items);
     final existing = updated[item.name];
     if (existing != null) {
-      updated[item.name] =
-          existing.copyWith(quantity: existing.quantity + 1);
+      updated[item.name] = existing.copyWith(quantity: existing.quantity + 1);
     } else {
       updated[item.name] = OrderCartItem(item: item, quantity: 1);
     }

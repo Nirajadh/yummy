@@ -1,4 +1,4 @@
-import 'package:bloc/bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:yummy/features/dashboard/domain/entities/dashboard_snapshot.dart';
 import 'package:yummy/features/orders/domain/entities/active_order_entity.dart';
@@ -16,9 +16,9 @@ class StaffDashboardBloc
   StaffDashboardBloc({
     required GetStaffDashboardSnapshotUseCase getSnapshot,
     required GetStaffActiveOrdersUseCase getActiveOrders,
-  })  : _getSnapshot = getSnapshot,
-        _getActiveOrders = getActiveOrders,
-        super(const StaffDashboardState()) {
+  }) : _getSnapshot = getSnapshot,
+       _getActiveOrders = getActiveOrders,
+       super(const StaffDashboardState()) {
     on<StaffDashboardStarted>(_onStarted);
     on<StaffDashboardRefreshed>(_onStarted);
   }

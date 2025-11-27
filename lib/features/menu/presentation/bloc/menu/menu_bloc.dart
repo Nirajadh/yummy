@@ -1,5 +1,5 @@
-import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/features/menu/domain/entities/menu_item_entity.dart';
 import 'package:yummy/features/menu/domain/usecases/get_menu_items_usecase.dart';
 import 'package:yummy/features/menu/domain/usecases/upsert_menu_item_usecase.dart';
@@ -14,9 +14,9 @@ class MenuBloc extends Bloc<MenuEvent, MenuState> {
   MenuBloc({
     required GetMenuItemsUseCase getMenuItems,
     required UpsertMenuItemUseCase upsertMenuItem,
-  })  : _getMenuItems = getMenuItems,
-        _upsertMenuItem = upsertMenuItem,
-        super(const MenuState()) {
+  }) : _getMenuItems = getMenuItems,
+       _upsertMenuItem = upsertMenuItem,
+       super(const MenuState()) {
     on<MenuRequested>(_onRequested);
     on<MenuItemSaved>(_onSaved);
   }
@@ -31,18 +31,12 @@ class MenuBloc extends Bloc<MenuEvent, MenuState> {
       emit(state.copyWith(status: MenuStatus.success, items: items));
     } catch (e) {
       emit(
-        state.copyWith(
-          status: MenuStatus.failure,
-          errorMessage: e.toString(),
-        ),
+        state.copyWith(status: MenuStatus.failure, errorMessage: e.toString()),
       );
     }
   }
 
-  Future<void> _onSaved(
-    MenuItemSaved event,
-    Emitter<MenuState> emit,
-  ) async {
+  Future<void> _onSaved(MenuItemSaved event, Emitter<MenuState> emit) async {
     await _upsertMenuItem(event.item);
     add(const MenuRequested());
   }

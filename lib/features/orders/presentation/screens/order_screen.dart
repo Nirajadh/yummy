@@ -124,8 +124,10 @@ class _OrderScreenState extends State<OrderScreen> {
     );
     final total = cartState.subtotal;
 
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
         final cartState = context.read<OrderCartCubit>().state;
         Navigator.pop(
           context,
@@ -135,7 +137,6 @@ class _OrderScreenState extends State<OrderScreen> {
             items: _billLinesFromCart(cartState),
           ),
         );
-        return false;
       },
       child: Scaffold(
         appBar: AppBar(title: Text(_args.contextLabel)),
@@ -276,7 +277,7 @@ class _OrderScreenState extends State<OrderScreen> {
         final accent = colorScheme.primary;
         return Material(
           elevation: 12,
-          color: colorScheme.surfaceVariant.withValues(alpha: 0.95),
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.95),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           child: SafeArea(
             top: false,
@@ -438,7 +439,7 @@ class _OrderScreenState extends State<OrderScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: colorScheme.surfaceVariant.withValues(
+                          color: colorScheme.surfaceContainerHighest.withValues(
                             alpha: 0.6,
                           ),
                           borderRadius: BorderRadius.circular(16),
@@ -570,7 +571,7 @@ class _ActionCardButton extends StatelessWidget {
     final isDisabled = onTap == null;
     final scheme = Theme.of(context).colorScheme;
     final colors = isDisabled
-        ? [scheme.surfaceVariant, scheme.surfaceVariant]
+        ? [scheme.surfaceContainerHighest, scheme.surfaceContainerHighest]
         : gradient;
 
     return AnimatedOpacity(

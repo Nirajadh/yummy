@@ -1,14 +1,9 @@
-/// DTO for registration response: BaseResponse<UserRead>
 class RegisterModel {
   final String? status;
   final String message;
   final RegisterUserData? data;
 
-  RegisterModel({
-    this.status,
-    required this.message,
-    this.data,
-  });
+  RegisterModel({this.status, required this.message, this.data});
 
   factory RegisterModel.fromJson(Map<String, dynamic> json) {
     final dataJson = json['data'];

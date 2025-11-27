@@ -26,7 +26,7 @@ class DashboardMetricModel {
       value: (json['value'] as String?)?.trim(),
       trend: trend,
       iconCodePoint: iconCode ?? Icons.help_outline.codePoint,
-      colorValue: color ?? Colors.grey.value,
+      colorValue: color ?? Colors.grey.toARGB32(),
     );
   }
 
@@ -36,7 +36,7 @@ class DashboardMetricModel {
       value: metric.value,
       trend: metric.trend,
       iconCodePoint: metric.icon.codePoint,
-      colorValue: metric.color.value,
+      colorValue: metric.color.toARGB32(),
     );
   }
 

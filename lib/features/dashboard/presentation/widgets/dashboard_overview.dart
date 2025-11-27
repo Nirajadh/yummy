@@ -287,7 +287,7 @@ class _MetricCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               CircleAvatar(
-                backgroundColor: metric.color.withOpacity(.12),
+                backgroundColor: metric.color.withValues(alpha: 0.12),
                 child: Icon(metric.icon, color: metric.color),
               ),
               const Spacer(),

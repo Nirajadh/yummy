@@ -1,4 +1,4 @@
-import 'package:bloc/bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:yummy/features/orders/domain/entities/active_order_entity.dart';
 import 'package:yummy/features/orders/domain/usecases/get_active_orders_usecase.dart';
@@ -10,8 +10,8 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
   final GetActiveOrdersUseCase _getActiveOrders;
 
   OrdersBloc({required GetActiveOrdersUseCase getActiveOrders})
-      : _getActiveOrders = getActiveOrders,
-        super(const OrdersState()) {
+    : _getActiveOrders = getActiveOrders,
+      super(const OrdersState()) {
     on<OrdersRequested>(_onRequested);
   }
 
@@ -22,12 +22,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
     emit(state.copyWith(status: OrdersStatus.loading));
     try {
       final orders = await _getActiveOrders();
-      emit(
-        state.copyWith(
-          status: OrdersStatus.success,
-          orders: orders,
-        ),
-      );
+      emit(state.copyWith(status: OrdersStatus.success, orders: orders));
     } catch (e) {
       emit(
         state.copyWith(
