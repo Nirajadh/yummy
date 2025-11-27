@@ -13,9 +13,9 @@ import 'package:yummy/features/auth/data/repositories/auth_repository_impl.dart'
 import 'package:yummy/features/auth/domain/usecases/login_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/register_usecase.dart';
+import 'package:yummy/features/auth/domain/usecases/admin_register_usecase.dart';
 import 'package:yummy/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:yummy/features/auth/presentation/screens/login_screen.dart';
-import 'package:yummy/features/auth/presentation/screens/register_screen.dart';
+import 'package:yummy/features/auth/presentation/screens/auth_screen.dart';
 import 'package:yummy/features/auth/presentation/screens/user_profile_screen.dart';
 import 'package:yummy/features/common/data/datasources/local_dummy_data_source.dart';
 import 'package:yummy/features/common/data/repositories/restaurant_repository_impl.dart';
@@ -64,6 +64,7 @@ import 'package:yummy/features/tables/presentation/models/tables_screen_args.dar
 import 'package:yummy/features/tables/presentation/screens/table_order_screen.dart';
 import 'package:yummy/features/tables/presentation/screens/tables_screen.dart';
 import 'package:yummy/core/services/shared_prefrences.dart';
+import 'package:yummy/core/themes/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -78,6 +79,9 @@ void main() {
     remoteDataSource: authRemoteDataSource,
   );
   final registerUsecase = RegisterUsecase(authRepository: authRepository);
+  final adminRegisterUsecase = AdminRegisterUsecase(
+    authRepository: authRepository,
+  );
   final loginUsecase = LoginUsecase(authRepository: authRepository);
   final logoutUsecase = LogoutUsecase(authRepository: authRepository);
   final adminRepository = AdminRepositoryImpl(base: repository);
@@ -94,6 +98,7 @@ void main() {
       staffDashboardUseCase: GetStaffDashboardSnapshotUseCase(staffRepository),
       staffActiveOrdersUseCase: GetStaffActiveOrdersUseCase(staffRepository),
       kitchenKotTicketsUseCase: GetKitchenKotTicketsUseCase(kitchenRepository),
+      adminRegisterUsecase: adminRegisterUsecase,
     ),
   );
 }
@@ -101,6 +106,7 @@ void main() {
 class MyRestroApp extends StatelessWidget {
   final RestaurantRepository repository;
   final RegisterUsecase registerUsecase;
+  final AdminRegisterUsecase adminRegisterUsecase;
   final LoginUsecase loginUsecase;
   final LogoutUsecase logoutUsecase;
   final GetAdminDashboardSnapshotUseCase adminDashboardUseCase;
@@ -118,15 +124,11 @@ class MyRestroApp extends StatelessWidget {
     required this.staffDashboardUseCase,
     required this.staffActiveOrdersUseCase,
     required this.kitchenKotTicketsUseCase,
+    required this.adminRegisterUsecase,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: const Color.fromARGB(255, 5, 149, 244),
-      brightness: Brightness.light,
-      contrastLevel: 0.8,
-    );
     return RepositoryProvider.value(
       value: repository,
       child: MultiBlocProvider(
@@ -134,6 +136,7 @@ class MyRestroApp extends StatelessWidget {
           BlocProvider(
             create: (_) => AuthBloc(
               registerUsecase: registerUsecase,
+              adminRegisterUsecase: adminRegisterUsecase,
               loginUsecase: loginUsecase,
               logoutUsecase: logoutUsecase,
             ),
@@ -183,22 +186,17 @@ class MyRestroApp extends StatelessWidget {
         child: MaterialApp(
           title: 'MyRestro',
           debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: colorScheme,
-            scaffoldBackgroundColor: Colors.grey.shade50,
-          ),
+          theme: AppTheme.light,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: ThemeMode.system,
           initialRoute: '/',
           onGenerateRoute: (settings) {
             switch (settings.name) {
               case '/':
                 return MaterialPageRoute(builder: (_) => const _LaunchScreen());
-              case '/login':
-                return MaterialPageRoute(builder: (_) => const LoginScreen());
-              case '/register':
-                return MaterialPageRoute(
-                  builder: (_) => const RegisterScreen(),
-                );
+              case '/auth':
+                return MaterialPageRoute(builder: (_) => const AuthScreen());
+
               case '/profile':
                 return MaterialPageRoute(
                   builder: (_) => const UserProfileScreen(),
@@ -320,7 +318,7 @@ class MyRestroApp extends StatelessWidget {
                   builder: (_) => const AdminMoreScreen(),
                 );
               default:
-                return MaterialPageRoute(builder: (_) => const LoginScreen());
+                return MaterialPageRoute(builder: (_) => const AuthScreen());
             }
           },
         ),
@@ -365,7 +363,7 @@ class _LaunchScreenState extends State<_LaunchScreen> {
       }
     }
 
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushReplacementNamed(context, '/auth');
   }
 
   @override

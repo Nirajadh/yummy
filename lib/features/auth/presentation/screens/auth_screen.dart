@@ -17,7 +17,6 @@ class _AuthScreenState extends State<AuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
-  static const String _role = 'admin';
   bool _loading = false;
   bool _rememberMe = false;
   AuthTab _selectedTab = AuthTab.login;
@@ -49,13 +48,13 @@ class _AuthScreenState extends State<AuthScreen> {
     }
 
     context.read<AuthBloc>().add(
-      RegisterRequested(
-        name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        role: _role,
-      ),
-    );
+          AdminRegisterRequested(
+            name: _nameController.text.trim(),
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            confirmPassword: _confirmController.text,
+          ),
+        );
   }
 
   @override
@@ -95,6 +94,11 @@ class _AuthScreenState extends State<AuthScreen> {
               _passwordController.clear();
               _confirmController.clear();
             });
+          }
+
+          if (state is AuthAdminRegisterSuccess) {
+            _showSnack(state.adminRegisterEntity.message);
+            Navigator.pushReplacementNamed(context, '/admin-dashboard');
           }
         },
         child: Stack(
@@ -184,44 +188,40 @@ class _AuthScreenState extends State<AuthScreen> {
                                 AppTextField(
                                   controller: _nameController,
                                   label: 'Full name',
-                                  hintText: 'Jane Doe',
                                   validator: (value) =>
                                       value == null || value.isEmpty
-                                          ? 'Required'
-                                          : null,
+                                      ? 'Required'
+                                      : null,
                                 ),
                                 const SizedBox(height: 14),
                               ],
                               AppTextField(
                                 controller: _emailController,
                                 label: 'Email',
-                                hintText: 'you@example.com',
                                 keyboardType: TextInputType.emailAddress,
                                 validator: (value) =>
                                     value == null || value.isEmpty
-                                        ? 'Required'
-                                        : null,
+                                    ? 'Required'
+                                    : null,
                               ),
                               const SizedBox(height: 14),
                               AppPasswordField(
                                 controller: _passwordController,
                                 label: 'Password',
-                                hintText: '••••••••',
                                 validator: (value) =>
                                     value == null || value.isEmpty
-                                        ? 'Required'
-                                        : null,
+                                    ? 'Required'
+                                    : null,
                               ),
                               if (_selectedTab == AuthTab.signUp) ...[
                                 const SizedBox(height: 14),
                                 AppPasswordField(
                                   controller: _confirmController,
                                   label: 'Confirm Password',
-                                  hintText: '••••••••',
                                   validator: (value) =>
                                       value == null || value.isEmpty
-                                          ? 'Required'
-                                          : null,
+                                      ? 'Required'
+                                      : null,
                                 ),
                               ],
                               if (_selectedTab == AuthTab.login) ...[
@@ -266,7 +266,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   ],
                                 ),
                               ],
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 30),
                               GradientPrimaryButton(
                                 label: _selectedTab == AuthTab.login
                                     ? 'Log In'

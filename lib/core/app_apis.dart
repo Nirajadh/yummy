@@ -39,6 +39,7 @@ class AuthApis {
   AuthApis();
   // Trailing slash avoids 307 redirect from the backend.
   String get register => '/users/';
+  String get registerAdmin => '/users/admin/register';
   String userById(String id) => '/users/$id';
   String get login => '/auth/login';
   String get listUsers => '/users/all';

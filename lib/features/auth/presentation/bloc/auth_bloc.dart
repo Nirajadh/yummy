@@ -2,9 +2,11 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:yummy/features/auth/domain/entities/login_entity.dart';
 import 'package:yummy/features/auth/domain/entities/register_entity.dart';
+import 'package:yummy/features/auth/domain/entities/admin_register_entity.dart';
 import 'package:yummy/features/auth/domain/usecases/login_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/register_usecase.dart';
+import 'package:yummy/features/auth/domain/usecases/admin_register_usecase.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
@@ -12,15 +14,18 @@ part 'auth_state.dart';
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc({
     required this.registerUsecase,
+    required this.adminRegisterUsecase,
     required this.loginUsecase,
     required this.logoutUsecase,
   }) : super(AuthInitial()) {
     on<LoginRequested>(_onLoginRequested);
     on<RegisterRequested>(_onRegisterRequested);
+    on<AdminRegisterRequested>(_onAdminRegisterRequested);
     on<LogoutRequested>(_onLogoutRequested);
   }
 
   final RegisterUsecase registerUsecase;
+  final AdminRegisterUsecase adminRegisterUsecase;
   final LoginUsecase loginUsecase;
   final LogoutUsecase logoutUsecase;
 
@@ -66,6 +71,27 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (failure) => emit(AuthFailure(message: failure.message)),
       (registerEntity) =>
           emit(AuthRegisterSuccess(registerEntity: registerEntity)),
+    );
+  }
+
+  Future<void> _onAdminRegisterRequested(
+    AdminRegisterRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    final params = AdminRegisterParams(
+      name: event.name,
+      email: event.email,
+      password: event.password,
+      confirmPassword: event.confirmPassword,
+    );
+
+    final result = await adminRegisterUsecase(params);
+    result.fold(
+      (failure) => emit(AuthFailure(message: failure.message)),
+      (adminEntity) => emit(
+        AuthAdminRegisterSuccess(adminRegisterEntity: adminEntity),
+      ),
     );
   }
 

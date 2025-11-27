@@ -1,13 +1,16 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:yummy/core/error/exceptions.dart';
 import 'package:yummy/core/error/failure.dart';
+import 'package:yummy/core/mapper/auth_mapper/admin_register_mapper.dart';
 import 'package:yummy/core/mapper/auth_mapper/login_model_mapper.dart';
 import 'package:yummy/core/mapper/auth_mapper/register_mapper.dart';
 import 'package:yummy/core/services/shared_prefrences.dart';
+import 'package:yummy/features/auth/data/models/admin_register_model.dart';
 import 'package:yummy/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:yummy/features/auth/data/models/login_model.dart';
 import 'package:yummy/features/auth/data/models/user_model.dart';
 import 'package:yummy/features/auth/domain/entities/login_entity.dart';
+import 'package:yummy/features/auth/domain/entities/admin_register_entity.dart';
 import 'package:yummy/features/auth/domain/entities/register_entity.dart';
 import 'package:yummy/features/auth/domain/entities/user_entity.dart';
 import 'package:yummy/features/auth/domain/repositories/auth_repository.dart';
@@ -24,12 +27,8 @@ class AuthRepositoryImpl implements AuthRepository {
   List<UserEntity> _mapUsers(List<UserModel> models) {
     return models
         .map(
-          (m) => UserEntity(
-            id: m.id,
-            name: m.name,
-            email: m.email,
-            role: m.role,
-          ),
+          (m) =>
+              UserEntity(id: m.id, name: m.name, email: m.email, role: m.role),
         )
         .toList();
   }
@@ -45,10 +44,16 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
       );
       final entity = _mapLogin(response);
-      await SecureStorageService().setValue(key: 'token', value: entity.accessToken);
+      await SecureStorageService().setValue(
+        key: 'token',
+        value: entity.accessToken,
+      );
       await SecureStorageService().setValue(key: 'role', value: entity.role);
       await SecureStorageService().setValue(key: 'email', value: entity.email);
-      await SecureStorageService().setValue(key: 'user_name', value: entity.userName);
+      await SecureStorageService().setValue(
+        key: 'user_name',
+        value: entity.userName,
+      );
       return Right(entity);
     } on ServerException catch (e) {
       return Left(Failure(e.message));
@@ -78,6 +83,42 @@ class AuthRepositoryImpl implements AuthRepository {
         role: role,
       );
       return Right(RegisterMapper.toEntity(response));
+    } on ServerException catch (e) {
+      return Left(Failure(e.message));
+    } on NetworkException catch (e) {
+      return Left(Failure(e.message));
+    } on DataParsingException catch (e) {
+      return Left(Failure(e.message));
+    } catch (e) {
+      return Left(Failure('An unexpected error occurred: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, AdminRegisterEntity>> registerAdmin({
+    required String name,
+    required String email,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    try {
+      final response = await remoteDataSource.registerAdmin(
+        name: name,
+        email: email,
+        password: password,
+        confirmPassword: confirmPassword,
+      );
+      final entity = AdminRegisterMapper.toEntity(response);
+      if (entity.accessToken.isNotEmpty) {
+        await SecureStorageService().setValue(
+          key: 'token',
+          value: entity.accessToken,
+        );
+        await SecureStorageService().setValue(key: 'role', value: entity.role);
+        await SecureStorageService().setValue(key: 'email', value: entity.email);
+        await SecureStorageService().setValue(key: 'user_name', value: entity.name);
+      }
+      return Right(entity);
     } on ServerException catch (e) {
       return Left(Failure(e.message));
     } on NetworkException catch (e) {

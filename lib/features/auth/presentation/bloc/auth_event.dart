@@ -39,3 +39,20 @@ class RegisterRequested extends AuthEvent {
   @override
   List<Object?> get props => [name, email, password, role, confirmPassword];
 }
+
+class AdminRegisterRequested extends AuthEvent {
+  final String name;
+  final String email;
+  final String password;
+  final String confirmPassword;
+
+  const AdminRegisterRequested({
+    required this.name,
+    required this.email,
+    required this.password,
+    required this.confirmPassword,
+  });
+
+  @override
+  List<Object?> get props => [name, email, password, confirmPassword];
+}

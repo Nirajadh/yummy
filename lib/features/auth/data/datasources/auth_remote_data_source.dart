@@ -5,6 +5,7 @@ import 'package:yummy/core/app_apis.dart';
 import 'package:yummy/core/error/error_response_mapper.dart';
 import 'package:yummy/core/error/error_response_model.dart';
 import 'package:yummy/core/error/exceptions.dart';
+import 'package:yummy/features/auth/data/models/admin_register_model.dart';
 import 'package:yummy/features/auth/data/models/login_model.dart';
 import 'package:yummy/features/auth/data/models/register_model.dart';
 import 'package:yummy/features/auth/data/models/user_model.dart';
@@ -17,6 +18,12 @@ abstract interface class AuthRemoteDataSource {
     required String password,
     required String role,
     String? confirmPassword,
+  });
+  Future<AdminRegisterModel> registerAdmin({
+    required String name,
+    required String email,
+    required String password,
+    required String confirmPassword,
   });
   Future<List<UserModel>> getAllUsers();
 }
@@ -92,6 +99,60 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           throw ServerException(map['message']?.toString() ?? 'Register failed');
         }
         return RegisterModel.fromJson(map);
+      }
+
+      throw ServerException(
+        'Unexpected error: ${response.statusCode ?? 'no status'}',
+      );
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 422 && e.response?.data != null) {
+        final errorResponse = ErrorResponseMapper.toEntity(
+          ErrorResponseModel.fromJson(e.response!.data),
+        );
+        final topError = errorResponse.errors.join('\n');
+        throw ServerException(topError);
+      }
+
+      if (e.response?.data is Map<String, dynamic>) {
+        final data = e.response!.data as Map<String, dynamic>;
+        if (data['message'] != null) {
+          throw ServerException(data['message'].toString());
+        }
+        if (data['detail'] != null) {
+          throw ServerException(data['detail'].toString());
+        }
+      }
+
+      throw ServerException('Network error occurred');
+    } on SocketException {
+      throw const NetworkException('No Internet Connection');
+    } on FormatException {
+      throw const DataParsingException('Bad response format');
+    }
+  }
+
+  @override
+  Future<AdminRegisterModel> registerAdmin({
+    required String name,
+    required String email,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    try {
+      final response = await appApis.sendRequest.post(
+        AppApi.authApis.registerAdmin,
+        data: {
+          'name': name,
+          'email': email,
+          'password': password,
+          'confirm_password': confirmPassword,
+        },
+      );
+
+      final status = response.statusCode ?? 0;
+      if (status >= 200 && status < 300 && response.data is Map<String, dynamic>) {
+        final map = response.data as Map<String, dynamic>;
+        return AdminRegisterModel.fromJson(map);
       }
 
       throw ServerException(

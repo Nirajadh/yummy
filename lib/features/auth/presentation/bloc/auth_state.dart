@@ -30,6 +30,15 @@ class AuthRegisterSuccess extends AuthState {
   List<Object?> get props => [registerEntity];
 }
 
+class AuthAdminRegisterSuccess extends AuthState {
+  final AdminRegisterEntity adminRegisterEntity;
+
+  const AuthAdminRegisterSuccess({required this.adminRegisterEntity});
+
+  @override
+  List<Object?> get props => [adminRegisterEntity];
+}
+
 class AuthFailure extends AuthState {
   final String message;
 
