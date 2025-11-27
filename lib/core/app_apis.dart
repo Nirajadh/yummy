@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:dio/dio.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+import 'package:yummy/core/services/interceptor_policies.dart';
 import 'package:yummy/core/services/shared_prefrences.dart';
 
 const String baseUrl = 'https://yummy-2xfq.onrender.com';
@@ -16,6 +17,7 @@ class AppApis {
     _dio.options.headers['Accept'] = 'application/json';
     _dio.options.connectTimeout = const Duration(seconds: 40);
     _dio.options.receiveTimeout = const Duration(seconds: 40);
+    _dio.interceptors.add(JwtInterceptor());
     _dio.interceptors.add(PrettyDioLogger());
     _initToken();
   }
