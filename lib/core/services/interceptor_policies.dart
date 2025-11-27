@@ -9,8 +9,11 @@ class JwtInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     final accessToken = await SecureStorageService().getValue(key: 'token');
-    options.headers['content-type'] = 'application/json';
-    options.headers['Accept'] = 'application/json';
+    // Respect any content-type already set (e.g., form-encoded for login).
+    if (options.contentType != null) {
+      options.headers.putIfAbsent('content-type', () => options.contentType!);
+    }
+    options.headers.putIfAbsent('Accept', () => 'application/json');
     if (accessToken != null && accessToken.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $accessToken';
     }
