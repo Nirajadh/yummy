@@ -54,6 +54,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const Divider(height: 0),
           ListTile(
+            leading: const Icon(Icons.storefront_outlined),
+            title: const Text('Restaurant Details'),
+            subtitle: const Text('Name, address, phone, description'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.pushNamed(
+              context,
+              '/restaurant-setup',
+            ),
+          ),
+          const Divider(height: 0),
+          ListTile(
             leading: const Icon(Icons.palette_outlined),
             title: const Text('Theme'),
             trailing: const Icon(Icons.chevron_right),

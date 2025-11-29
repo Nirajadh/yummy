@@ -13,6 +13,7 @@ import 'package:yummy/features/finance/presentation/screens/reports_screen.dart'
 import 'package:yummy/features/groups/presentation/screens/group_create_screen.dart';
 import 'package:yummy/features/groups/presentation/screens/groups_screen.dart';
 import 'package:yummy/features/kitchen/presentation/screens/kitchen_dashboard_screen.dart';
+import 'package:yummy/features/admin/presentation/screens/restaurant_details_screen.dart';
 import 'package:yummy/features/menu/presentation/screens/menu_item_form_screen.dart';
 import 'package:yummy/features/menu/presentation/screens/menu_management_screen.dart';
 import 'package:yummy/features/orders/domain/entities/bill_preview.dart';
@@ -41,6 +42,15 @@ class AppRouter {
       case '/profile':
         return MaterialPageRoute(
           builder: (_) => const UserProfileScreen(),
+        );
+      case '/restaurant-setup':
+        final args = settings.arguments;
+        final screenArgs = args is RestaurantDetailsArgs ? args : null;
+        return MaterialPageRoute(
+          builder: (_) => RestaurantDetailsScreen(
+            allowSkip: screenArgs?.allowSkip ?? false,
+            redirectRoute: screenArgs?.redirectRoute,
+          ),
         );
       case '/admin-dashboard':
         return MaterialPageRoute(

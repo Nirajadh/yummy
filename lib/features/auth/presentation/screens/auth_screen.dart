@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/core/widgets/app_text_field.dart';
 import 'package:yummy/core/widgets/auth_widgets.dart';
 import 'package:yummy/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:yummy/features/admin/presentation/screens/restaurant_details_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -116,7 +117,14 @@ class _AuthScreenState extends State<AuthScreen> {
 
           if (state is AuthAdminRegisterSuccess) {
             _showSnack(state.adminRegisterEntity.message);
-            Navigator.pushReplacementNamed(context, '/admin-dashboard');
+            Navigator.pushReplacementNamed(
+              context,
+              '/restaurant-setup',
+              arguments: const RestaurantDetailsArgs(
+                allowSkip: true,
+                redirectRoute: '/admin-dashboard',
+              ),
+            );
           }
         },
         child: Stack(

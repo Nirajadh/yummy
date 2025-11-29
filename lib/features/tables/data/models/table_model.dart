@@ -8,6 +8,7 @@ class TableModel {
   List<String>? activeItems;
   List<String>? pastOrders;
   String? reservationName;
+  String? category;
 
   TableModel({
     this.name,
@@ -17,6 +18,7 @@ class TableModel {
     this.activeItems,
     this.pastOrders,
     this.reservationName,
+    this.category,
   });
 
   factory TableModel.fromJson(Map<String, dynamic> json) {
@@ -28,6 +30,7 @@ class TableModel {
       activeItems: _mapStringList(json['activeItems']),
       pastOrders: _mapStringList(json['pastOrders']),
       reservationName: (json['reservationName'] as String?)?.trim(),
+      category: (json['category'] as String?)?.trim(),
     );
   }
 
@@ -40,6 +43,7 @@ class TableModel {
       activeItems: table.activeItems,
       pastOrders: table.pastOrders,
       reservationName: table.reservationName,
+      category: table.category,
     );
   }
 
@@ -52,6 +56,7 @@ class TableModel {
       'activeItems': activeItems,
       'pastOrders': pastOrders,
       'reservationName': reservationName,
+      'category': category,
     };
   }
 
@@ -63,6 +68,7 @@ class TableModel {
     List<String>? activeItems,
     List<String>? pastOrders,
     String? reservationName,
+    String? category,
   }) {
     return TableModel(
       name: name ?? this.name,
@@ -72,6 +78,7 @@ class TableModel {
       activeItems: activeItems ?? this.activeItems,
       pastOrders: pastOrders ?? this.pastOrders,
       reservationName: reservationName ?? this.reservationName,
+      category: category ?? this.category,
     );
   }
 

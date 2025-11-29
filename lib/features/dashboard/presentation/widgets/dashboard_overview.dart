@@ -20,6 +20,7 @@ class DashboardOverview extends StatelessWidget {
   final List<ActiveOrderEntity> activeOrders;
   final List<OrderHistoryEntryEntity> orderHistory;
   final List<ExpenseEntryEntity> expenses;
+  final Widget? topBanner;
 
   const DashboardOverview({
     super.key,
@@ -32,6 +33,7 @@ class DashboardOverview extends StatelessWidget {
     this.activeOrders = const [],
     this.orderHistory = const [],
     this.expenses = const [],
+    this.topBanner,
   });
 
   @override
@@ -73,6 +75,10 @@ class DashboardOverview extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (topBanner != null) ...[
+            topBanner!,
+            const SizedBox(height: 12),
+          ],
           Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),

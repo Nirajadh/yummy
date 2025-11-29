@@ -8,11 +8,13 @@ class TableInfo {
   final List<String> activeItems;
   final List<String> pastOrders;
   final String? reservationName;
+  final String category;
 
   const TableInfo({
     required this.name,
     required this.capacity,
     required this.status,
+    this.category = 'General',
     this.notes = '',
     this.activeItems = const [],
     this.pastOrders = const [],
@@ -556,6 +558,7 @@ const dummyTables = <TableInfo>[
     name: 'T1',
     capacity: 4,
     status: 'FREE',
+    category: 'Floor 1',
     notes: 'Window corner',
     pastOrders: ['ORD-090 • \$75.40', 'ORD-082 • \$64.20'],
   ),
@@ -563,6 +566,7 @@ const dummyTables = <TableInfo>[
     name: 'T2',
     capacity: 2,
     status: 'OCCUPIED',
+    category: 'Floor 1',
     notes: 'VIP guest',
     activeItems: ['Margherita Pizza x1', 'Lemonade x2', 'Cheesecake x1'],
     pastOrders: ['ORD-105 • \$120.00'],
@@ -571,6 +575,7 @@ const dummyTables = <TableInfo>[
     name: 'T3',
     capacity: 6,
     status: 'RESERVED',
+    category: 'Floor 1',
     reservationName: 'Patel Family',
     notes: 'Arriving at 8 PM',
     pastOrders: ['ORD-077 • \$240.30'],
@@ -579,6 +584,7 @@ const dummyTables = <TableInfo>[
     name: 'T4',
     capacity: 4,
     status: 'BILL PRINTED',
+    category: 'Floor 1',
     activeItems: ['Veggie Burger x2', 'Iced Tea x2'],
     pastOrders: ['ORD-111 • \$86.00'],
   ),
@@ -586,14 +592,22 @@ const dummyTables = <TableInfo>[
     name: 'T5',
     capacity: 8,
     status: 'OCCUPIED',
+    category: 'Cabin 1',
     activeItems: ['Tandoori Platter x1', 'Mango Lassi x4', 'Brownie Sundae x2'],
     pastOrders: ['ORD-130 • \$310.75', 'ORD-125 • \$280.40'],
   ),
-  TableInfo(name: 'T6', capacity: 2, status: 'FREE', notes: 'Near entrance'),
+  TableInfo(
+    name: 'T6',
+    capacity: 2,
+    status: 'FREE',
+    category: 'Cabin 1',
+    notes: 'Near entrance',
+  ),
   TableInfo(
     name: 'T7',
     capacity: 4,
     status: 'RESERVED',
+    category: 'Cabin 2',
     reservationName: 'Corporate booking',
     pastOrders: ['ORD-060 • \$150.90'],
   ),
@@ -601,16 +615,24 @@ const dummyTables = <TableInfo>[
     name: 'T8',
     capacity: 6,
     status: 'FREE',
+    category: 'Cabin 2',
     pastOrders: ['ORD-070 • \$180.10'],
   ),
   TableInfo(
     name: 'T9',
     capacity: 4,
     status: 'OCCUPIED',
+    category: 'Rooftop',
     activeItems: ['Paneer Tikka x1', 'Mojito x3', 'Gulab Jamun x2'],
     pastOrders: ['ORD-140 • \$210.10'],
   ),
-  TableInfo(name: 'T10', capacity: 10, status: 'FREE', notes: 'Party table'),
+  TableInfo(
+    name: 'T10',
+    capacity: 10,
+    status: 'FREE',
+    category: 'Rooftop',
+    notes: 'Party table',
+  ),
 ];
 
 const dummyGroups = <GroupInfo>[

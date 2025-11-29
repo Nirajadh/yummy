@@ -23,6 +23,7 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
   late List<_TableLine> _activeLines;
   late List<String> _pastOrders;
   late String _status;
+  late String _category;
 
   @override
   void didChangeDependencies() {
@@ -35,6 +36,7 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
     _activeLines = _buildLinesFromStrings(_args.activeItems);
     _pastOrders = List.of(_args.pastOrders);
     _status = _args.status;
+    _category = _args.category;
     _loaded = true;
   }
 
@@ -337,6 +339,8 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
+                    Text('Category: $_category'),
+                    const SizedBox(height: 4),
                     Text('Capacity: ${_args.capacity} guests'),
                     if (_args.notes.isNotEmpty) Text('Notes: ${_args.notes}'),
                   ],

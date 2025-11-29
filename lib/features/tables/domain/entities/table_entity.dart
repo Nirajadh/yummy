@@ -8,11 +8,13 @@ class TableEntity extends Equatable {
   final List<String> activeItems;
   final List<String> pastOrders;
   final String? reservationName;
+  final String category;
 
   const TableEntity({
     required this.name,
     required this.capacity,
     required this.status,
+    this.category = 'General',
     this.notes = '',
     this.activeItems = const [],
     this.pastOrders = const [],
@@ -23,6 +25,7 @@ class TableEntity extends Equatable {
     String? name,
     int? capacity,
     String? status,
+    String? category,
     String? notes,
     List<String>? activeItems,
     List<String>? pastOrders,
@@ -32,6 +35,7 @@ class TableEntity extends Equatable {
       name: name ?? this.name,
       capacity: capacity ?? this.capacity,
       status: status ?? this.status,
+      category: category ?? this.category,
       notes: notes ?? this.notes,
       activeItems: activeItems ?? this.activeItems,
       pastOrders: pastOrders ?? this.pastOrders,
@@ -44,6 +48,7 @@ class TableEntity extends Equatable {
         name,
         capacity,
         status,
+        category,
         notes,
         activeItems,
         pastOrders,
