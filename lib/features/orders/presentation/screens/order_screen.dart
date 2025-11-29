@@ -269,11 +269,16 @@ class _OrderScreenState extends State<OrderScreen> {
     minSize = (minSize.clamp(0.12, initialSize));
 
     return DraggableScrollableSheet(
+      key: ValueKey('${cartState.items.length}-${cartState.subtotal}'),
       initialChildSize: initialSize,
       minChildSize: minSize,
       maxChildSize: hasItems ? maxSize : 0.2,
       builder: (context, scrollController) {
         final colorScheme = Theme.of(context).colorScheme;
+        final currentEntries = context.select(
+          (OrderCartCubit cubit) => cubit.state.items.entries.toList(),
+        );
+        final currentHasItems = currentEntries.isNotEmpty;
         final accent = colorScheme.primary;
         return Material(
           elevation: 12,
@@ -317,7 +322,7 @@ class _OrderScreenState extends State<OrderScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'Cart',
+                                    'Add to cart',
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -326,7 +331,7 @@ class _OrderScreenState extends State<OrderScreen> {
                                 ],
                               ),
                             ),
-                            if (hasItems)
+                            if (currentHasItems)
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,
@@ -337,7 +342,7 @@ class _OrderScreenState extends State<OrderScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  '${entries.length} item${entries.length == 1 ? '' : 's'}',
+                                  '${currentEntries.length} item${currentEntries.length == 1 ? '' : 's'}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     color: accent,
@@ -351,7 +356,7 @@ class _OrderScreenState extends State<OrderScreen> {
                       ],
                     ),
                   ),
-                  if (!hasItems)
+                  if (!currentHasItems)
                     const SliverToBoxAdapter(
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 12),
@@ -366,11 +371,11 @@ class _OrderScreenState extends State<OrderScreen> {
                   else ...[
                     SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
-                        final entry = entries[index];
+                        final entry = currentEntries[index];
                         final item = entry.value;
                         return Container(
                           margin: EdgeInsets.only(
-                            bottom: index == entries.length - 1 ? 0 : 10,
+                            bottom: index == currentEntries.length - 1 ? 0 : 10,
                           ),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -503,37 +508,37 @@ class _OrderScreenState extends State<OrderScreen> {
                                         : null,
                                   ),
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _ActionCardButton(
-                                    icon: Icons.arrow_forward_rounded,
-                                    title: 'Proceed to Checkout',
-                                    subtitle: 'Review bill & payments',
-                                    gradient: [
-                                      colorScheme.secondary.withValues(
-                                        alpha: 0.95,
-                                      ),
-                                      colorScheme.secondary,
-                                    ],
-                                    onTap: hasItems
-                                        ? () {
-                                            if (!cartState.sentToKitchen) {
-                                              _showAction(
-                                                'Send to kitchen before checkout',
-                                              );
-                                              return;
-                                            }
-                                            Navigator.pushNamed(
-                                              context,
-                                              '/bill-preview',
-                                              arguments: _buildBillPreviewArgs(
-                                                cartState,
-                                              ),
-                                            );
-                                          }
-                                        : null,
-                                  ),
-                                ),
+
+                                // Expanded(
+                                //   child: _ActionCardButton(
+                                //     icon: Icons.arrow_forward_rounded,
+                                //     title: 'Proceed to Checkout',
+                                //     subtitle: 'Review bill & payments',
+                                //     gradient: [
+                                //       colorScheme.secondary.withValues(
+                                //         alpha: 0.95,
+                                //       ),
+                                //       colorScheme.secondary,
+                                //     ],
+                                //     onTap: hasItems
+                                //         ? () {
+                                //             if (!cartState.sentToKitchen) {
+                                //               _showAction(
+                                //                 'Send to kitchen before checkout',
+                                //               );
+                                //               return;
+                                //             }
+                                //             Navigator.pushNamed(
+                                //               context,
+                                //               '/bill-preview',
+                                //               arguments: _buildBillPreviewArgs(
+                                //                 cartState,
+                                //               ),
+                                //             );
+                                //           }
+                                //         : null,
+                                //   ),
+                                // ),
                               ],
                             ),
                           ],
@@ -597,30 +602,39 @@ class _ActionCardButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             onTap: onTap,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
+
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.18),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(icon, color: Colors.white, size: 20),
+                    child: Icon(icon, color: Colors.white, size: 28),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                  const SizedBox(width: 32),
+                  Column(
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
