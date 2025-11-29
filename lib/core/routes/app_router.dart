@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/core/services/shared_prefrences.dart';
 import 'package:yummy/features/admin/presentation/screens/admin_dashboard_shell.dart';
-import 'package:yummy/features/admin/presentation/screens/admin_more_screen.dart';
 import 'package:yummy/features/admin/presentation/screens/settings_screen.dart';
+
 import 'package:yummy/features/auth/presentation/screens/auth_screen.dart';
 import 'package:yummy/features/auth/presentation/screens/user_profile_screen.dart';
 import 'package:yummy/features/finance/presentation/screens/expenses_screen.dart';
@@ -13,7 +13,12 @@ import 'package:yummy/features/finance/presentation/screens/reports_screen.dart'
 import 'package:yummy/features/groups/presentation/screens/group_create_screen.dart';
 import 'package:yummy/features/groups/presentation/screens/groups_screen.dart';
 import 'package:yummy/features/kitchen/presentation/screens/kitchen_dashboard_screen.dart';
-import 'package:yummy/features/admin/presentation/screens/restaurant_details_screen.dart';
+import 'package:yummy/features/restaurant/presentation/restaurant_details_screen.dart';
+
+import 'package:yummy/features/restaurant/presentation/screens/restaurant_hub_screen.dart';
+import 'package:yummy/features/restaurant/presentation/bloc/restaurant_bloc.dart';
+import 'package:yummy/core/di/di.dart';
+import 'package:yummy/features/admin/presentation/bloc/settings/settings_bloc.dart';
 import 'package:yummy/features/menu/presentation/screens/menu_item_form_screen.dart';
 import 'package:yummy/features/menu/presentation/screens/menu_management_screen.dart';
 import 'package:yummy/features/orders/domain/entities/bill_preview.dart';
@@ -27,6 +32,7 @@ import 'package:yummy/features/orders/presentation/screens/pickup_order_screen.d
 import 'package:yummy/features/orders/presentation/screens/quick_billing_screen.dart';
 import 'package:yummy/features/staff/presentation/screens/staff_management_screen.dart';
 import 'package:yummy/features/staff_portal/presentation/screens/staff_dashboard_shell.dart';
+import 'package:yummy/features/tables/presentation/bloc/table_order/table_order_bloc.dart';
 import 'package:yummy/features/tables/presentation/models/tables_screen_args.dart';
 import 'package:yummy/features/tables/presentation/screens/table_order_screen.dart';
 import 'package:yummy/features/tables/presentation/screens/tables_screen.dart';
@@ -40,26 +46,33 @@ class AppRouter {
       case '/auth':
         return MaterialPageRoute(builder: (_) => const AuthScreen());
       case '/profile':
-        return MaterialPageRoute(
-          builder: (_) => const UserProfileScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const UserProfileScreen());
       case '/restaurant-setup':
         final args = settings.arguments;
         final screenArgs = args is RestaurantDetailsArgs ? args : null;
         return MaterialPageRoute(
-          builder: (_) => RestaurantDetailsScreen(
-            allowSkip: screenArgs?.allowSkip ?? false,
-            redirectRoute: screenArgs?.redirectRoute,
+          builder: (_) => BlocProvider(
+            create: (_) => sl<RestaurantBloc>(),
+            child: RestaurantDetailsScreen(
+              allowSkip: screenArgs?.allowSkip ?? false,
+              redirectRoute: screenArgs?.redirectRoute,
+            ),
           ),
         );
+      case '/restaurant-settings':
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (_) => sl<RestaurantBloc>(),
+            child: const RestaurantDetailsScreen(),
+          ),
+        );
+
+      case '/restaurant':
+        return MaterialPageRoute(builder: (_) => const RestaurantHubScreen());
       case '/admin-dashboard':
-        return MaterialPageRoute(
-          builder: (_) => const AdminDashboardShell(),
-        );
+        return MaterialPageRoute(builder: (_) => const AdminDashboardShell());
       case '/staff-dashboard':
-        return MaterialPageRoute(
-          builder: (_) => const StaffDashboardShell(),
-        );
+        return MaterialPageRoute(builder: (_) => const StaffDashboardShell());
       case '/kitchen-dashboard':
         return MaterialPageRoute(
           builder: (_) => const KitchenDashboardScreen(),
@@ -68,38 +81,42 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const OrdersScreen());
       case '/tables':
         final args = settings.arguments;
-        final allowManageTables =
-            args is TablesScreenArgs ? args.allowManageTables : true;
-        final dashboardRoute =
-            args is TablesScreenArgs ? args.dashboardRoute : '/admin-dashboard';
+        final allowManageTables = args is TablesScreenArgs
+            ? args.allowManageTables
+            : false;
+        final dashboardRoute = args is TablesScreenArgs
+            ? args.dashboardRoute
+            : '/admin-dashboard';
         return MaterialPageRoute(
           builder: (_) => TablesScreen(
             allowManageTables: allowManageTables,
             dashboardRoute: dashboardRoute,
           ),
         );
+      case '/tables-manage':
+        return MaterialPageRoute(
+          builder: (_) => const TablesScreen(
+            allowManageTables: true,
+            dashboardRoute: '/admin-dashboard',
+          ),
+        );
       case '/table-order':
         return MaterialPageRoute(
-          builder: (_) => const TableOrderScreen(),
+          builder: (_) => BlocProvider(
+            create: (_) => TableOrderBloc(),
+            child: const TableOrderScreen(),
+          ),
         );
       case '/groups':
         return MaterialPageRoute(builder: (_) => const GroupsScreen());
       case '/group-create':
-        return MaterialPageRoute(
-          builder: (_) => const GroupCreateScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const GroupCreateScreen());
       case '/group-order':
-        return MaterialPageRoute(
-          builder: (_) => const GroupOrderScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const GroupOrderScreen());
       case '/pickup-order':
-        return MaterialPageRoute(
-          builder: (_) => const PickupOrderScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const PickupOrderScreen());
       case '/quick-billing':
-        return MaterialPageRoute(
-          builder: (_) => const QuickBillingScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const QuickBillingScreen());
       case '/order-screen':
         return MaterialPageRoute(
           builder: (_) => BlocProvider(
@@ -127,9 +144,7 @@ class AppRouter {
           },
         );
       case '/menu-management':
-        return MaterialPageRoute(
-          builder: (_) => const MenuManagementScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const MenuManagementScreen());
       case '/menu-add':
         return MaterialPageRoute(
           builder: (_) => const MenuItemFormScreen(isEditing: false),
@@ -139,32 +154,32 @@ class AppRouter {
           builder: (_) => const MenuItemFormScreen(isEditing: true),
         );
       case '/expenses':
-        return MaterialPageRoute(
-          builder: (_) => const ExpensesScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const ExpensesScreen());
       case '/purchase':
-        return MaterialPageRoute(
-          builder: (_) => const PurchaseScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const PurchaseScreen());
       case '/income':
         return MaterialPageRoute(builder: (_) => const IncomeScreen());
       case '/order-history':
-        return MaterialPageRoute(
-          builder: (_) => const OrderHistoryScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const OrderHistoryScreen());
       case '/reports':
         return MaterialPageRoute(builder: (_) => const ReportsScreen());
       case '/settings':
         return MaterialPageRoute(
-          builder: (_) => const SettingsScreen(),
+          builder: (_) => BlocProvider(
+            create: (_) => sl<SettingsBloc>(),
+            child: const SettingsScreen(),
+          ),
         );
+
       case '/staff-management':
-        return MaterialPageRoute(
-          builder: (_) => const StaffManagementScreen(),
-        );
+        return MaterialPageRoute(builder: (_) => const StaffManagementScreen());
       case '/admin-more':
+        // Legacy route: redirect to settings with bloc.
         return MaterialPageRoute(
-          builder: (_) => const AdminMoreScreen(),
+          builder: (_) => BlocProvider(
+            create: (_) => sl<SettingsBloc>(),
+            child: const SettingsScreen(),
+          ),
         );
       default:
         return MaterialPageRoute(builder: (_) => const AuthScreen());

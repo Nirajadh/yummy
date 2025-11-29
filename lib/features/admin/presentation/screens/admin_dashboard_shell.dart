@@ -22,10 +22,10 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
     _pages = <Widget>[
       AdminDashboardScreen(
         onNavigateToOrders: () => setState(() => _index = 1),
-        onOpenMore: () => Navigator.pushNamed(context, '/admin-more'),
+        onOpenMore: () => Navigator.pushNamed(context, '/settings'),
       ),
       const OrdersScreen(),
-      const TablesScreen(),
+      const TablesScreen(allowManageTables: false),
       const GroupsScreen(),
     ];
   }

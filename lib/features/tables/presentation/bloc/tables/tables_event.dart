@@ -20,11 +20,38 @@ class TableSaved extends TablesEvent {
   List<Object?> get props => [table];
 }
 
-class TableDeleted extends TablesEvent {
-  final String tableName;
+class TableCategoryAdded extends TablesEvent {
+  final String name;
 
-  const TableDeleted(this.tableName);
+  const TableCategoryAdded(this.name);
 
   @override
-  List<Object?> get props => [tableName];
+  List<Object?> get props => [name];
+}
+
+class TableCategorySelected extends TablesEvent {
+  final String? name;
+
+  const TableCategorySelected(this.name);
+
+  @override
+  List<Object?> get props => [name];
+}
+
+class TableCategoryFilterChanged extends TablesEvent {
+  final String category;
+  const TableCategoryFilterChanged(this.category);
+
+  @override
+  List<Object?> get props => [category];
+}
+
+class TableDeleted extends TablesEvent {
+  final String tableName;
+  final int? tableId;
+
+  const TableDeleted(this.tableName, {this.tableId});
+
+  @override
+  List<Object?> get props => [tableName, tableId];
 }

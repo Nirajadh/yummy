@@ -188,6 +188,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
   }
 
   Future<void> _fetchUsers() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -198,20 +199,24 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
         remoteDataSource: AuthRemoteDataSourceImpl(appApis: AppApis()),
       );
       final result = await repo.getAllUsers();
+      if (!mounted) return;
       result.fold(
         (failure) {
+          if (!mounted) return;
           setState(() {
             _error = failure.message;
             _staffMembers = List.of(dummyStaffMembers);
           });
         },
         (users) {
+          if (!mounted) return;
           setState(() {
             _staffMembers = _mapUsersToStaff(users);
           });
         },
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _staffMembers = List.of(dummyStaffMembers);
@@ -516,19 +521,23 @@ class _StaffFormSheetState extends State<StaffFormSheet> {
           if (_pendingStaff != null) {
             widget.onSave(_pendingStaff!);
           }
-          setState(() {
-            _submitting = false;
-            _pendingStaff = null;
-          });
+          if (mounted) {
+            setState(() {
+              _submitting = false;
+              _pendingStaff = null;
+            });
+          }
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(state.registerEntity.message)));
           Navigator.pop(context);
         } else if (state is AuthFailure) {
-          setState(() {
-            _submitting = false;
-            _pendingStaff = null;
-          });
+          if (mounted) {
+            setState(() {
+              _submitting = false;
+              _pendingStaff = null;
+            });
+          }
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(state.message)));

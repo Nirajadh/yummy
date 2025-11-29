@@ -28,6 +28,7 @@ import 'package:yummy/features/menu/domain/usecases/upsert_menu_item_usecase.dar
 import 'package:yummy/features/menu/presentation/bloc/menu/menu_bloc.dart';
 import 'package:yummy/features/orders/domain/usecases/get_active_orders_usecase.dart';
 import 'package:yummy/features/orders/presentation/bloc/orders/orders_bloc.dart';
+import 'package:yummy/features/restaurant/domain/usecases/update_restaurant_usecase.dart';
 import 'package:yummy/features/staff_portal/data/repositories/staff_portal_repository_impl.dart';
 import 'package:yummy/features/staff_portal/domain/repositories/staff_portal_repository.dart';
 import 'package:yummy/features/staff_portal/domain/usecases/get_staff_active_orders_usecase.dart';
@@ -37,6 +38,27 @@ import 'package:yummy/features/tables/domain/usecases/delete_table_usecase.dart'
 import 'package:yummy/features/tables/domain/usecases/get_tables_usecase.dart';
 import 'package:yummy/features/tables/domain/usecases/upsert_table_usecase.dart';
 import 'package:yummy/features/tables/presentation/bloc/tables/tables_bloc.dart';
+import 'package:yummy/features/tables/domain/usecases/create_remote_table_usecase.dart';
+import 'package:yummy/features/tables/domain/repositories/remote_table_repository.dart';
+import 'package:yummy/features/tables/data/repositories/remote_table_repository_impl.dart';
+import 'package:yummy/features/tables/data/datasources/table_remote_data_source.dart';
+import 'package:yummy/features/tables/data/datasources/table_type_remote_data_source.dart';
+import 'package:yummy/features/tables/data/repositories/table_type_repository_impl.dart';
+import 'package:yummy/features/tables/domain/repositories/table_type_repository.dart';
+import 'package:yummy/features/tables/domain/usecases/create_table_type_usecase.dart';
+import 'package:yummy/features/tables/domain/usecases/get_remote_tables_usecase.dart';
+import 'package:yummy/features/tables/domain/usecases/get_table_types_usecase.dart';
+import 'package:yummy/features/tables/domain/usecases/delete_remote_table_usecase.dart';
+import 'package:yummy/features/restaurant/data/datasources/restaurant_remote_data_source.dart';
+import 'package:yummy/features/restaurant/data/repositories/restaurant_repository_impl.dart'
+    as remote_restaurant_repo;
+import 'package:yummy/features/restaurant/domain/repositories/restaurant_repository.dart'
+    as remote_restaurant_repo_interface;
+import 'package:yummy/features/restaurant/domain/usecases/create_restaurant_usecase.dart';
+import 'package:yummy/features/restaurant/domain/usecases/get_restaurant_by_user_usecase.dart';
+import 'package:yummy/features/restaurant/presentation/bloc/restaurant_bloc.dart';
+import 'package:yummy/features/admin/presentation/bloc/settings/settings_bloc.dart';
+import 'package:yummy/core/services/restaurant_details_service.dart';
 
 final sl = GetIt.instance;
 
@@ -44,6 +66,9 @@ Future<void> setupDependencies() async {
   // Core
   sl.registerLazySingleton<AppApis>(() => AppApis());
   sl.registerLazySingleton<LocalDummyDataSource>(() => LocalDummyDataSource());
+  sl.registerLazySingleton<RestaurantDetailsService>(
+    () => RestaurantDetailsService(),
+  );
 
   // Repositories
   sl.registerLazySingleton<RestaurantRepository>(
@@ -64,6 +89,24 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(remoteDataSource: sl()),
   );
+  sl.registerLazySingleton<
+    remote_restaurant_repo_interface.RestaurantRepository
+  >(() => remote_restaurant_repo.RestaurantRepositoryImpl(remote: sl()));
+  sl.registerLazySingleton<RestaurantRemoteDataSource>(
+    () => RestaurantRemoteDataSourceImpl(appApis: sl()),
+  );
+  sl.registerLazySingleton<RemoteTableRepository>(
+    () => RemoteTableRepositoryImpl(remote: sl()),
+  );
+  sl.registerLazySingleton<TableRemoteDataSource>(
+    () => TableRemoteDataSourceImpl(appApis: sl()),
+  );
+  sl.registerLazySingleton<TableTypeRepository>(
+    () => TableTypeRepositoryImpl(remote: sl()),
+  );
+  sl.registerLazySingleton<TableTypeRemoteDataSource>(
+    () => TableTypeRemoteDataSourceImpl(appApis: sl()),
+  );
 
   // Use cases
   sl.registerFactory(() => RegisterUsecase(authRepository: sl()));
@@ -83,6 +126,14 @@ Future<void> setupDependencies() async {
   sl.registerFactory(() => GetMenuItemsUseCase(sl()));
   sl.registerFactory(() => UpsertMenuItemUseCase(sl()));
   sl.registerFactory(() => GetKitchenKotTicketsUseCase(sl()));
+  sl.registerFactory(() => CreateRestaurantUseCase(sl()));
+  sl.registerFactory(() => UpdateRestaurantUseCase(sl()));
+  sl.registerFactory(() => GetRestaurantByUserUsecase(sl()));
+  sl.registerFactory(() => CreateRemoteTableUseCase(sl()));
+  sl.registerFactory(() => CreateTableTypeUseCase(sl()));
+  sl.registerFactory(() => GetRemoteTablesUseCase(sl()));
+  sl.registerFactory(() => GetTableTypesUseCase(sl()));
+  sl.registerFactory(() => DeleteRemoteTableUseCase(sl()));
 
   // Blocs
   sl.registerFactory(
@@ -91,41 +142,34 @@ Future<void> setupDependencies() async {
       adminRegisterUsecase: sl(),
       loginUsecase: sl(),
       logoutUsecase: sl(),
+      getRestaurantByUserUsecase: sl(),
+      restaurantDetailsService: sl(),
     ),
   );
+  sl.registerFactory(() => AdminDashboardBloc(getSnapshot: sl()));
   sl.registerFactory(
-    () => AdminDashboardBloc(getSnapshot: sl()),
+    () => StaffDashboardBloc(getSnapshot: sl(), getActiveOrders: sl()),
   );
-  sl.registerFactory(
-    () => StaffDashboardBloc(
-      getSnapshot: sl(),
-      getActiveOrders: sl(),
-    ),
-  );
-  sl.registerFactory(
-    () => OrdersBloc(getActiveOrders: sl()),
-  );
+  sl.registerFactory(() => OrdersBloc(getActiveOrders: sl()));
   sl.registerFactory(
     () => TablesBloc(
-      getTables: sl(),
       upsertTable: sl(),
       deleteTable: sl(),
+      createRemoteTable: sl(),
+      createTableType: sl(),
+      getTableTypes: sl(),
+      getRemoteTables: sl(),
+      deleteRemoteTable: sl(),
     ),
   );
   sl.registerFactory(
-    () => GroupsBloc(
-      getGroups: sl(),
-      upsertGroup: sl(),
-      toggleGroupStatus: sl(),
-    ),
+    () =>
+        GroupsBloc(getGroups: sl(), upsertGroup: sl(), toggleGroupStatus: sl()),
   );
+  sl.registerFactory(() => MenuBloc(getMenuItems: sl(), upsertMenuItem: sl()));
+  sl.registerFactory(() => KitchenKotBloc(getTickets: sl()));
   sl.registerFactory(
-    () => MenuBloc(
-      getMenuItems: sl(),
-      upsertMenuItem: sl(),
-    ),
+    () => RestaurantBloc(createRestaurant: sl(), updateRestaurant: sl()),
   );
-  sl.registerFactory(
-    () => KitchenKotBloc(getTickets: sl()),
-  );
+  sl.registerFactory(() => SettingsBloc());
 }

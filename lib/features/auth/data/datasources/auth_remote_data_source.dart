@@ -92,11 +92,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
 
       final status = response.statusCode ?? 0;
-      if (status >= 200 && status < 300 && response.data is Map<String, dynamic>) {
+      if (status >= 200 &&
+          status < 300 &&
+          response.data is Map<String, dynamic>) {
         final map = response.data as Map<String, dynamic>;
         final apiStatus = (map['status'] ?? '').toString().toLowerCase();
         if (apiStatus != 'success') {
-          throw ServerException(map['message']?.toString() ?? 'Register failed');
+          throw ServerException(
+            map['message']?.toString() ?? 'Register failed',
+          );
         }
         return RegisterModel.fromJson(map);
       }
@@ -150,7 +154,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
 
       final status = response.statusCode ?? 0;
-      if (status >= 200 && status < 300 && response.data is Map<String, dynamic>) {
+      if (status >= 200 &&
+          status < 300 &&
+          response.data is Map<String, dynamic>) {
         final map = response.data as Map<String, dynamic>;
         return AdminRegisterModel.fromJson(map);
       }

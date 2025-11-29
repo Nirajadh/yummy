@@ -85,7 +85,7 @@ class _OrderScreenState extends State<OrderScreen> {
         .toList();
   }
 
-  BillPreviewArgs _buildBillPreviewArgs(OrderCartState cartState) {
+  BillPreviewArgs buildBillPreviewArgs(OrderCartState cartState) {
     final items = _billLinesFromCart(cartState);
 
     return BillPreviewArgs(
@@ -107,6 +107,7 @@ class _OrderScreenState extends State<OrderScreen> {
   Widget build(BuildContext context) {
     final menuState = context.watch<MenuBloc>().state;
     final cartState = context.watch<OrderCartCubit>().state;
+    Theme.of(context);
 
     if (menuState.status == MenuStatus.loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -183,6 +184,7 @@ class _OrderScreenState extends State<OrderScreen> {
                                 ),
                             itemCount: filteredMenu.length,
                             itemBuilder: (context, index) {
+                              final theme = Theme.of(context);
                               final item = filteredMenu[index];
                               return Card(
                                 shape: RoundedRectangleBorder(
@@ -213,15 +215,21 @@ class _OrderScreenState extends State<OrderScreen> {
                                       const SizedBox(height: 8),
                                       Text(
                                         item.name,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                       ),
                                       Text(
                                         '\$${item.price.toStringAsFixed(2)}',
-                                        style: const TextStyle(
-                                          color: Colors.grey,
-                                        ),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: theme
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.color
+                                                  ?.withValues(alpha: 0.7),
+                                            ),
                                       ),
                                       const SizedBox(height: 8),
                                       SizedBox(
@@ -274,7 +282,14 @@ class _OrderScreenState extends State<OrderScreen> {
       minChildSize: minSize,
       maxChildSize: hasItems ? maxSize : 0.2,
       builder: (context, scrollController) {
-        final colorScheme = Theme.of(context).colorScheme;
+        final theme = Theme.of(context);
+        final colorScheme = theme.colorScheme;
+        final textColor =
+            theme.textTheme.bodyLarge?.color ??
+            (theme.brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black87);
+        final subtle = textColor.withValues(alpha: 0.65);
         final currentEntries = context.select(
           (OrderCartCubit cubit) => cubit.state.items.entries.toList(),
         );
@@ -282,7 +297,7 @@ class _OrderScreenState extends State<OrderScreen> {
         final accent = colorScheme.primary;
         return Material(
           elevation: 12,
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.95),
+          color: theme.cardColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           child: SafeArea(
             top: false,
@@ -321,12 +336,10 @@ class _OrderScreenState extends State<OrderScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'Add to cart',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
@@ -357,13 +370,13 @@ class _OrderScreenState extends State<OrderScreen> {
                     ),
                   ),
                   if (!currentHasItems)
-                    const SliverToBoxAdapter(
+                    SliverToBoxAdapter(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Center(
                           child: Text(
                             'No items added yet.',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                            style: TextStyle(fontSize: 16, color: subtle),
                           ),
                         ),
                       ),
@@ -382,8 +395,20 @@ class _OrderScreenState extends State<OrderScreen> {
                             vertical: 10,
                           ),
                           decoration: BoxDecoration(
-                            color: colorScheme.surface.withValues(alpha: 0.7),
+                            color: theme.cardColor,
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: theme.dividerColor.withValues(alpha: 0.1),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: theme.shadowColor.withValues(
+                                  alpha: 0.04,
+                                ),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Row(
                             children: [
@@ -393,16 +418,15 @@ class _OrderScreenState extends State<OrderScreen> {
                                   children: [
                                     Text(
                                       item.item.name,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
                                     Text(
                                       '\$${item.item.price.toStringAsFixed(2)} each',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 12,
-                                      ),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(color: subtle),
                                     ),
                                   ],
                                 ),
@@ -417,7 +441,10 @@ class _OrderScreenState extends State<OrderScreen> {
                                         .read<OrderCartCubit>()
                                         .changeQuantity(item.item.name, -1),
                                   ),
-                                  Text('${item.quantity}'),
+                                  Text(
+                                    '${item.quantity}',
+                                    style: theme.textTheme.titleMedium,
+                                  ),
                                   IconButton(
                                     icon: const Icon(Icons.add_circle_outline),
                                     onPressed: () => context
@@ -429,7 +456,7 @@ class _OrderScreenState extends State<OrderScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 '\$${(item.item.price * item.quantity).toStringAsFixed(2)}',
-                                style: TextStyle(
+                                style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w700,
                                   color: accent,
                                 ),
@@ -444,10 +471,11 @@ class _OrderScreenState extends State<OrderScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHighest.withValues(
-                            alpha: 0.6,
-                          ),
+                          color: theme.cardColor,
                           borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: theme.dividerColor.withValues(alpha: 0.1),
+                          ),
                         ),
                         child: Column(
                           children: [

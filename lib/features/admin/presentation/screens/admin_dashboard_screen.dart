@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:yummy/features/admin/presentation/bloc/admin_dashboard/admin_dashboard_bloc.dart';
 import 'package:yummy/features/dashboard/presentation/widgets/dashboard_overview.dart';
 import 'package:yummy/core/services/restaurant_details_service.dart';
@@ -62,10 +63,10 @@ class AdminDashboardScreen extends StatelessWidget {
   List<Widget> _actions(BuildContext context) {
     return [
       IconButton(
-        tooltip: 'More',
-        icon: const Icon(Icons.widgets_outlined),
+        tooltip: 'Settings',
+        icon: const Icon(Icons.settings_outlined),
         onPressed:
-            onOpenMore ?? () => Navigator.pushNamed(context, '/admin-more'),
+            onOpenMore ?? () => Navigator.pushNamed(context, '/settings'),
       ),
     ];
   }
@@ -103,15 +104,14 @@ class AdminDashboardScreen extends StatelessWidget {
               backgroundColor: Color(0xFFEFF4FF),
               child: Icon(Icons.store_mall_directory_outlined),
             ),
-            title: const Text('Complete restaurant details'),
-            subtitle: const Text(
-              'Add name, address, phone, and description to finish setup.',
+            title: const Text(
+              'Complete restaurant details',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
+
             trailing: FilledButton(
-              onPressed: () => Navigator.pushNamed(
-                context,
-                '/restaurant-setup',
-              ),
+              onPressed: () =>
+                  Navigator.pushNamed(context, '/restaurant-setup'),
               child: const Text('Add details'),
             ),
           ),

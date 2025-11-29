@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/core/widgets/app_text_field.dart';
 import 'package:yummy/core/widgets/auth_widgets.dart';
 import 'package:yummy/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:yummy/features/admin/presentation/screens/restaurant_details_screen.dart';
+import 'package:yummy/features/restaurant/presentation/restaurant_details_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -67,13 +67,13 @@ class _AuthScreenState extends State<AuthScreen> {
     }
 
     context.read<AuthBloc>().add(
-          AdminRegisterRequested(
-            name: _nameController.text.trim(),
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-            confirmPassword: _confirmController.text,
-          ),
-        );
+      AdminRegisterRequested(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        confirmPassword: _confirmController.text,
+      ),
+    );
   }
 
   @override
@@ -165,9 +165,9 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                           ),
                           const SizedBox(height: 10),
-                            Text(
-                              'Create an account or log in to explore about our app',
-                              style: TextStyle(
+                          Text(
+                            'Create an account or log in to explore about our app',
+                            style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.8),
                               fontSize: 14,
                               height: 1.4,

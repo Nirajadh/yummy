@@ -7,6 +7,8 @@ import 'package:yummy/features/auth/domain/usecases/login_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/register_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/admin_register_usecase.dart';
+import 'package:yummy/features/restaurant/domain/usecases/get_restaurant_by_user_usecase.dart';
+import 'package:yummy/core/services/restaurant_details_service.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
@@ -17,6 +19,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.adminRegisterUsecase,
     required this.loginUsecase,
     required this.logoutUsecase,
+    required this.getRestaurantByUserUsecase,
+    required this.restaurantDetailsService,
   }) : super(AuthInitial()) {
     on<LoginRequested>(_onLoginRequested);
     on<RegisterRequested>(_onRegisterRequested);
@@ -28,6 +32,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AdminRegisterUsecase adminRegisterUsecase;
   final LoginUsecase loginUsecase;
   final LogoutUsecase logoutUsecase;
+  final GetRestaurantByUserUsecase getRestaurantByUserUsecase;
+  final RestaurantDetailsService restaurantDetailsService;
 
   Future<void> _onLoginRequested(
     LoginRequested event,
@@ -43,8 +49,27 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await result.fold(
       (failure) async => emit(AuthFailure(message: failure.message)),
       (loginEntity) async {
+        await _cacheRestaurantForUser();
         emit(
           AuthLoginSuccess(loginEntity: loginEntity, role: loginEntity.role),
+        );
+      },
+    );
+  }
+
+  Future<void> _cacheRestaurantForUser() async {
+    final restaurantResult = await getRestaurantByUserUsecase();
+    await restaurantResult.fold(
+      (_) async {},
+      (restaurant) async {
+        await restaurantDetailsService.saveDetails(
+          RestaurantDetails(
+            id: restaurant.id,
+            name: restaurant.name,
+            address: restaurant.address,
+            phone: restaurant.phone,
+            description: restaurant.description ?? '',
+          ),
         );
       },
     );

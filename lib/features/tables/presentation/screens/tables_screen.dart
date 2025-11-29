@@ -27,9 +27,6 @@ class TablesScreen extends StatefulWidget {
 }
 
 class _TablesScreenState extends State<TablesScreen> {
-  String _selectedCategory = '';
-  final List<String> _customCategories = [];
-
   void _openForm({TableEntity? table}) {
     final bloc = context.read<TablesBloc>();
     showModalBottomSheet<void>(
@@ -44,20 +41,29 @@ class _TablesScreenState extends State<TablesScreen> {
         ),
         child: TableFormSheet(
           table: table,
-          selectedCategory: _selectedCategory,
+          selectedCategory: context.read<TablesBloc>().state.selectedCategory,
           onSave: (newTable) => bloc.add(TableSaved(newTable)),
           onDelete: table != null
-              ? () => bloc.add(TableDeleted(table.name))
+              ? () => bloc.add(
+                TableDeleted(
+                  table.name,
+                  tableId: table.id,
+                ),
+              )
               : null,
         ),
       ),
     );
   }
 
-  List<String> _allCategories(List<TableEntity> tables) {
-    final set = <String>{..._customCategories};
+  List<String> _allCategories(TablesState state, List<TableEntity> tables) {
+    final set = <String>{
+      ...(state.tableTypes ?? const []).map((t) => t.name),
+    };
     for (final table in tables) {
-      set.add(table.category.isNotEmpty ? table.category : 'Unassigned');
+      if (table.category.isNotEmpty) {
+        set.add(table.category);
+      }
     }
     final list = set.toList();
     list.sort();
@@ -97,12 +103,8 @@ class _TablesScreenState extends State<TablesScreen> {
     );
 
     if (name != null && name.isNotEmpty) {
-      setState(() {
-        if (!_customCategories.contains(name)) {
-          _customCategories.add(name);
-        }
-        _selectedCategory = name;
-      });
+      context.read<TablesBloc>().add(TableCategoryAdded(name));
+      context.read<TablesBloc>().add(TableCategorySelected(name));
     }
   }
 
@@ -123,19 +125,28 @@ class _TablesScreenState extends State<TablesScreen> {
           onPressed: () => _goToDashboard(context),
         ),
       ),
-      body: BlocBuilder<TablesBloc, TablesState>(
+      body: BlocConsumer<TablesBloc, TablesState>(
+        listener: (context, state) {
+          final message = state.lastMessage;
+          if (message != null && message.isNotEmpty && mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(message)));
+          }
+        },
         builder: (context, state) {
           if (state.status == TablesStatus.loading) {
             return const Center(child: CircularProgressIndicator());
           }
           final tables = state.tables;
-          if (tables.isEmpty) {
-            return const Center(child: Text('No tables found.'));
-          }
-          final categories = _allCategories(tables);
-          final filteredTables = _selectedCategory.isEmpty
+          final categories = _allCategories(state, tables);
+          final selectedCategory =
+              state.filterCategory.isNotEmpty && categories.isNotEmpty
+                  ? state.filterCategory
+                  : (categories.isNotEmpty ? categories.first : '');
+          final filteredTables = selectedCategory.isEmpty
               ? tables
-              : tables.where((t) => t.category == _selectedCategory).toList();
+              : tables.where((t) => t.category == selectedCategory).toList();
           return Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -143,18 +154,21 @@ class _TablesScreenState extends State<TablesScreen> {
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
                       'Manage Tables',
-                      style: TextStyle(
-                        fontSize: 18,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
-                      'Switch between halls/floors and add tables to the active category.',
-                      style: TextStyle(color: Colors.grey),
+                      'Switch halls/floors and add tables to the active category.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                      ),
                     ),
                   ],
                 ),
@@ -164,15 +178,27 @@ class _TablesScreenState extends State<TablesScreen> {
                   child: Row(
                     children: [
                       ...categories.map((category) {
-                        final selected = category == _selectedCategory;
+                        final selected = category == selectedCategory;
                         return Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: ChoiceChip(
                             label: Text(category),
                             selected: selected,
-                            onSelected: (value) => setState(
-                              () => _selectedCategory = value ? category : '',
-                            ),
+                            selectedColor: Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer,
+                            labelStyle: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(
+                                  color: selected
+                                      ? Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimaryContainer
+                                      : null,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                            onSelected: (_) => context
+                                .read<TablesBloc>()
+                                .add(TableCategoryFilterChanged(category)),
                           ),
                         );
                       }),
@@ -183,6 +209,16 @@ class _TablesScreenState extends State<TablesScreen> {
                             label: const Text('Add Category'),
                             avatar: const Icon(Icons.add),
                             onPressed: _promptAddCategory,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.secondaryContainer,
+                            labelStyle: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSecondaryContainer,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ),
                     ],
@@ -192,145 +228,180 @@ class _TablesScreenState extends State<TablesScreen> {
                 Wrap(
                   spacing: 12,
                   runSpacing: 8,
-                  children: const [
-                    LegendDot(color: Colors.green, label: 'Available'),
-                    LegendDot(color: Colors.red, label: 'Occupied'),
-                    LegendDot(color: Colors.orange, label: 'Bill Printed'),
-                    LegendDot(color: Colors.blue, label: 'Reserved'),
+                  children: [
+                    const LegendDot(color: Colors.green, label: 'Available'),
+                    LegendDot(color: Colors.red.shade400, label: 'Occupied'),
+                    LegendDot(
+                      color: Theme.of(context).colorScheme.secondary,
+                      label: 'Bill Printed',
+                    ),
+                    LegendDot(
+                      color: Theme.of(context).colorScheme.primary,
+                      label: 'Reserved',
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: GridView.builder(
-                    itemCount: filteredTables.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 1.1,
-                        ),
-                    itemBuilder: (context, index) {
-                      final table = filteredTables[index];
-                      return Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 1,
-                        surfaceTintColor: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
+                  child: filteredTables.isEmpty
+                      ? const Center(child: Text('No tables found.'))
+                      : GridView.builder(
+                          itemCount: filteredTables.length,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: 1.1,
+                              ),
+                          itemBuilder: (context, index) {
+                            final table = filteredTables[index];
+                            return Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 1,
+                              surfaceTintColor: Colors.transparent,
+                              color: Theme.of(context).cardColor,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(16),
                           onTap: () => Navigator.pushNamed(
                             context,
                             '/table-order',
                             arguments: TableOrderArgs(
+                              tableId: table.id,
                               tableName: table.name,
                               status: table.status,
                               capacity: table.capacity,
                               category: table.category,
                               notes: table.notes,
-                              activeItems: table.activeItems,
-                              pastOrders: table.pastOrders,
-                              reservationName: table.reservationName,
-                            ),
-                          ),
-                          onLongPress: widget.allowManageTables
-                              ? () => _openForm(table: table)
-                              : null,
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            table.name,
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.blueGrey.withValues(
-                                                alpha: .08,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                            ),
-                                            child: Text(
-                                              table.category,
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.blueGrey,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    if (widget.allowManageTables)
-                                      IconButton(
-                                        icon: const Icon(Icons.edit, size: 20),
-                                        onPressed: () =>
-                                            _openForm(table: table),
-                                      ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.group_outlined, size: 16),
-                                    const SizedBox(width: 6),
-                                    Text('Seats ${table.capacity}'),
-                                  ],
-                                ),
-                                const Spacer(),
-                                Align(
-                                  alignment: Alignment.bottomLeft,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _statusColor(
-                                        table.status,
-                                      ).withValues(alpha: .15),
-                                      borderRadius: BorderRadius.circular(30),
-                                    ),
-                                    child: Text(
-                                      table.status,
-                                      style: TextStyle(
-                                        color: _statusColor(table.status),
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
+                                    activeItems: table.activeItems,
+                                    pastOrders: table.pastOrders,
+                                    reservationName: table.reservationName,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
+                                onLongPress: widget.allowManageTables
+                                    ? () => _openForm(table: table)
+                                    : null,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(14),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  table.name,
+                                                  style: const TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 4,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .primary
+                                                        .withValues(alpha: .08),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          20,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    table.category,
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .labelSmall
+                                                        ?.copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          color: Theme.of(
+                                                            context,
+                                                          ).colorScheme.primary,
+                                                        ),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          if (widget.allowManageTables)
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.edit,
+                                                size: 20,
+                                              ),
+                                              onPressed: () =>
+                                                  _openForm(table: table),
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.group_outlined,
+                                            size: 16,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.color
+                                                ?.withValues(alpha: 0.7),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text('Seats ${table.capacity}'),
+                                        ],
+                                      ),
+                                      const Spacer(),
+                                      Align(
+                                        alignment: Alignment.bottomLeft,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: _statusColor(
+                                              table.status,
+                                            ).withValues(alpha: .15),
+                                            borderRadius: BorderRadius.circular(
+                                              30,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            table.status,
+                                            style: TextStyle(
+                                              color: _statusColor(table.status),
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
                 ),
               ],
             ),
@@ -407,10 +478,12 @@ class _TableFormSheetState extends State<TableFormSheet> {
     final existing = widget.table;
     widget.onSave(
       TableEntity(
+        id: existing?.id,
         name: _nameController.text,
         capacity: capacity,
         status: existing?.status ?? 'FREE',
         category: category,
+        tableTypeId: existing?.tableTypeId ?? 0,
         notes: _notesController.text,
         activeItems: existing?.activeItems ?? const [],
         pastOrders: existing?.pastOrders ?? const [],

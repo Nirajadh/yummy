@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class TableInfo {
+  final int? id;
   final String name;
   final int capacity;
   final String status;
@@ -9,12 +10,15 @@ class TableInfo {
   final List<String> pastOrders;
   final String? reservationName;
   final String category;
+  final int tableTypeId;
 
   const TableInfo({
+    this.id,
     required this.name,
     required this.capacity,
     required this.status,
     this.category = 'General',
+    this.tableTypeId = 0,
     this.notes = '',
     this.activeItems = const [],
     this.pastOrders = const [],
@@ -592,7 +596,7 @@ const dummyTables = <TableInfo>[
     name: 'T5',
     capacity: 8,
     status: 'OCCUPIED',
-    category: 'Cabin 1',
+    category: '',
     activeItems: ['Tandoori Platter x1', 'Mango Lassi x4', 'Brownie Sundae x2'],
     pastOrders: ['ORD-130 • \$310.75', 'ORD-125 • \$280.40'],
   ),
@@ -600,14 +604,14 @@ const dummyTables = <TableInfo>[
     name: 'T6',
     capacity: 2,
     status: 'FREE',
-    category: 'Cabin 1',
+    category: '',
     notes: 'Near entrance',
   ),
   TableInfo(
     name: 'T7',
     capacity: 4,
     status: 'RESERVED',
-    category: 'Cabin 2',
+    category: '',
     reservationName: 'Corporate booking',
     pastOrders: ['ORD-060 • \$150.90'],
   ),
@@ -615,7 +619,7 @@ const dummyTables = <TableInfo>[
     name: 'T8',
     capacity: 6,
     status: 'FREE',
-    category: 'Cabin 2',
+    category: '',
     pastOrders: ['ORD-070 • \$180.10'],
   ),
   TableInfo(

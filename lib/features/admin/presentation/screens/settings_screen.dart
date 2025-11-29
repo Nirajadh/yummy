@@ -1,21 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:yummy/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:yummy/features/auth/presentation/widgets/logout_confirmation_dialog.dart';
+import 'package:yummy/features/admin/presentation/bloc/settings/settings_bloc.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
-
-  @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  bool _pushAlerts = true;
-  bool _emailSummaries = false;
-  bool _autoBackup = true;
-  bool _kitchenSound = true;
-  final String _language = 'English';
 
   void _showSnack(BuildContext context, String message) {
     ScaffoldMessenger.of(
@@ -27,104 +15,105 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          _SectionHeader(title: 'General'),
-          SwitchListTile(
-            secondary: const Icon(Icons.notifications_active_outlined),
-            title: const Text('Push Alerts'),
-            subtitle: const Text('Orders, payments, table updates'),
-            value: _pushAlerts,
-            onChanged: (value) => setState(() => _pushAlerts = value),
-          ),
-          SwitchListTile(
-            secondary: const Icon(Icons.mail_outline),
-            title: const Text('Email Summaries'),
-            subtitle: const Text('Daily performance snapshot'),
-            value: _emailSummaries,
-            onChanged: (value) => setState(() => _emailSummaries = value),
-          ),
-          ListTile(
-            leading: const Icon(Icons.language_outlined),
-            title: const Text('Language'),
-            subtitle: Text(_language),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showSnack(context, 'Language picker coming soon'),
-          ),
-          const Divider(height: 0),
-          ListTile(
-            leading: const Icon(Icons.storefront_outlined),
-            title: const Text('Restaurant Details'),
-            subtitle: const Text('Name, address, phone, description'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.pushNamed(
-              context,
-              '/restaurant-setup',
-            ),
-          ),
-          const Divider(height: 0),
-          ListTile(
-            leading: const Icon(Icons.palette_outlined),
-            title: const Text('Theme'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () =>
-                _showSnack(context, 'Theme settings tapped (UI only).'),
-          ),
-          const SizedBox(height: 8),
-          _SectionHeader(title: 'Operations'),
-          SwitchListTile(
-            secondary: const Icon(Icons.volume_up_outlined),
-            title: const Text('Kitchen Sounds'),
-            subtitle: const Text('Play alert sounds for new KOT'),
-            value: _kitchenSound,
-            onChanged: (value) => setState(() => _kitchenSound = value),
-          ),
-          SwitchListTile(
-            secondary: const Icon(Icons.cloud_sync_outlined),
-            title: const Text('Auto Backup'),
-            subtitle: const Text('Sync data to cloud every night'),
-            value: _autoBackup,
-            onChanged: (value) => setState(() => _autoBackup = value),
-          ),
-          ListTile(
-            leading: const Icon(Icons.download_outlined),
-            title: const Text('Data Export'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showSnack(context, 'Export started in background'),
-          ),
-          const SizedBox(height: 8),
-          _SectionHeader(title: 'Support'),
-          ListTile(
-            leading: const Icon(Icons.headset_mic_outlined),
-            title: const Text('Contact Support'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showSnack(context, 'Support chat opening soon'),
-          ),
-          const Divider(height: 0),
-          ListTile(
-            leading: const Icon(Icons.book_outlined),
-            title: const Text('Guides & Tutorials'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showSnack(context, 'Knowledge base coming soon'),
-          ),
-          const SizedBox(height: 8),
-          ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('Logout'),
-            onTap: () async {
-              final shouldLogout = await showLogoutConfirmationDialog(context);
-              if (shouldLogout && context.mounted) {
-                context.read<AuthBloc>().add(const LogoutRequested());
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/login',
-                  (route) => false,
-                );
-              }
-            },
-          ),
-        ],
+      body: BlocBuilder<SettingsBloc, SettingsState>(
+        builder: (context, state) {
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            children: [
+              _SectionHeader(title: 'Personalize'),
+              _SettingTile(
+                icon: Icons.favorite_border,
+                title: 'Appearance',
+                subtitle: 'Dark and light mode, font size',
+                onTap: () => _showSnack(context, 'Appearance coming soon'),
+              ),
+              _SettingTile(
+                icon: Icons.storefront_outlined,
+                title: 'Your Restaurant',
+                subtitle: 'Manage staff, menu, finance, and more',
+                highlight: false,
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.pushNamed(context, '/restaurant'),
+              ),
+              const SizedBox(height: 12),
+              _SectionHeader(title: 'Notifications & Operations'),
+              _SettingSwitch(
+                icon: Icons.notifications_active_outlined,
+                title: 'Push Alerts',
+                subtitle: 'Orders, payments, table updates',
+                value: state.pushAlerts,
+                onChanged: (value) =>
+                    context.read<SettingsBloc>().add(PushAlertsToggled(value)),
+              ),
+              _SettingSwitch(
+                icon: Icons.mail_outline,
+                title: 'Email Summaries',
+                subtitle: 'Daily performance snapshot',
+                value: state.emailSummaries,
+                onChanged: (value) => context.read<SettingsBloc>().add(
+                  EmailSummariesToggled(value),
+                ),
+              ),
+              _SettingSwitch(
+                icon: Icons.volume_up_outlined,
+                title: 'Kitchen Sounds',
+                subtitle: 'Play alert sounds for new KOT',
+                value: state.kitchenSound,
+                onChanged: (value) => context.read<SettingsBloc>().add(
+                  KitchenSoundToggled(value),
+                ),
+              ),
+              _SettingSwitch(
+                icon: Icons.cloud_sync_outlined,
+                title: 'Auto Backup',
+                subtitle: 'Sync data to cloud every night',
+                value: state.autoBackup,
+                onChanged: (value) =>
+                    context.read<SettingsBloc>().add(AutoBackupToggled(value)),
+              ),
+              _SettingTile(
+                icon: Icons.language_outlined,
+                title: 'Language',
+                subtitle: 'English',
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showSnack(context, 'Language picker coming soon'),
+              ),
+              _SettingTile(
+                icon: Icons.download_outlined,
+                title: 'Data Export',
+                subtitle: 'Export reports and billing',
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () =>
+                    _showSnack(context, 'Export started in background'),
+              ),
+              const SizedBox(height: 12),
+              _SectionHeader(title: 'Security & Support'),
+              _SettingTile(
+                icon: Icons.lock_outline,
+                title: 'Security',
+                subtitle: 'Configure password, PIN, etc.',
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () =>
+                    _showSnack(context, 'Security settings coming soon'),
+              ),
+              _SettingTile(
+                icon: Icons.headset_mic_outlined,
+                title: 'Contact Support',
+                subtitle: 'Chat with our support team',
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showSnack(context, 'Support chat opening soon'),
+              ),
+              _SettingTile(
+                icon: Icons.book_outlined,
+                title: 'Guides & Tutorials',
+                subtitle: 'Learn how to use the app',
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showSnack(context, 'Knowledge base coming soon'),
+              ),
+              const SizedBox(height: 12),
+            ],
+          );
+        },
       ),
     );
   }
@@ -140,6 +129,121 @@ class _SectionHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Text(title, style: Theme.of(context).textTheme.labelLarge),
+    );
+  }
+}
+
+class _SettingTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+  final Widget? trailing;
+  final bool highlight;
+
+  const _SettingTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.onTap,
+    this.trailing,
+    this.highlight = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bg = highlight
+        ? theme.colorScheme.primary.withValues(alpha: 0.08)
+        : theme.cardColor;
+    final fg =
+        theme.textTheme.bodyLarge?.color ??
+        (theme.brightness == Brightness.dark ? Colors.white : Colors.black87);
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: theme.shadowColor.withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListTile(
+        onTap: onTap,
+        leading: CircleAvatar(
+          backgroundColor: fg.withValues(alpha: 0.12),
+          child: Icon(icon, color: fg),
+        ),
+        title: Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: fg,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+          ),
+        ),
+        trailing: trailing,
+      ),
+    );
+  }
+}
+
+class _SettingSwitch extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _SettingSwitch({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.cardColor.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.08)),
+      ),
+      child: SwitchListTile(
+        secondary: CircleAvatar(
+          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+          child: Icon(icon, color: theme.colorScheme.primary),
+        ),
+        title: Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+          ),
+        ),
+        value: value,
+        onChanged: onChanged,
+        activeColor: theme.colorScheme.primary,
+      ),
     );
   }
 }

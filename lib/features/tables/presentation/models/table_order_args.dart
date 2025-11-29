@@ -1,4 +1,5 @@
 class TableOrderArgs {
+  final int? tableId;
   final String tableName;
   final String status;
   final int capacity;
@@ -9,6 +10,7 @@ class TableOrderArgs {
   final String category;
 
   const TableOrderArgs({
+    this.tableId,
     required this.tableName,
     required this.status,
     this.capacity = 0,
