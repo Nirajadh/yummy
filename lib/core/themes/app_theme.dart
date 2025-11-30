@@ -30,33 +30,31 @@ class AppTheme {
   );
   static final ThemeData darkTheme = ThemeData(
     brightness: Brightness.dark,
-    scaffoldBackgroundColor: AppColors.darkPrimary,
-    primaryColor: AppColors.highlightOrange,
+    scaffoldBackgroundColor: const Color(0xFF0F1014),
+    primaryColor: AppColors.primaryDark,
     textTheme: GoogleFonts.poppinsTextTheme(const TextTheme()).apply(
       bodyColor: AppColors.textPrimaryDark,
       displayColor: AppColors.textPrimaryDark,
     ),
-
-    appBarTheme: AppBarTheme(
-      backgroundColor: AppColors.darkCard,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF14161C),
       foregroundColor: Colors.white,
       elevation: 0,
     ),
-
-    cardColor: AppColors.darkCard,
-
+    cardColor: const Color(0xFF1B1D24),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.highlightOrange,
+        backgroundColor: AppColors.primaryDark,
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
       ),
     ),
-
-    colorScheme: ColorScheme.dark(
-      primary: AppColors.highlightOrange,
-      secondary: AppColors.goldAccent,
+    colorScheme: const ColorScheme.dark(
+      primary: AppColors.primary,
+      secondary: AppColors.accentYellow,
+      surface: Color(0xFF1B1D24),
+      background: Color(0xFF0F1014),
     ),
   );
 }

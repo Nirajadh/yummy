@@ -48,14 +48,14 @@ class AuthTabs extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final bg = isDark
-        ? theme.colorScheme.surface.withValues(alpha: 0.25)
+        ? theme.colorScheme.surface.withValues(alpha: 0.22)
         : Colors.white;
     final indicatorColor = isDark
-        ? theme.colorScheme.primary.withValues(alpha: 0.25)
+        ? theme.colorScheme.primary.withValues(alpha: 0.7)
         : Colors.white;
     final shadowColor = isDark
-        ? Colors.black.withValues(alpha: 0.35)
-        : const Color(0x15000000);
+        ? Color(0x330F4CFF)
+        : theme.colorScheme.primary.withValues(alpha: 0.16);
 
     return Container(
       height: 48,
@@ -95,8 +95,8 @@ class AuthTabs extends StatelessWidget {
                   boxShadow: [
                     BoxShadow(
                       color: shadowColor,
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      blurRadius: isDark ? 18 : 10,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
@@ -141,8 +141,12 @@ class _AuthSegmentButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final activeColor = theme.colorScheme.onSurface;
-    final inactiveColor = theme.colorScheme.onSurface.withValues(alpha: 0.6);
+    final activeColor = theme.brightness == Brightness.dark
+        ? Colors.white
+        : theme.colorScheme.onSurface;
+    final inactiveColor = theme.brightness == Brightness.dark
+        ? Colors.white.withValues(alpha: 0.8)
+        : theme.colorScheme.onSurface.withValues(alpha: 0.6);
     return Padding(
       padding: const EdgeInsets.all(5),
       child: AnimatedContainer(
@@ -309,71 +313,202 @@ class AuthBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
-    final secondary = Color.lerp(primary, Colors.black, 0.35) ?? primary;
-    final gridColor = theme.brightness == Brightness.dark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.white.withValues(alpha: 0.05);
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [secondary, primary],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+    final secondary = theme.brightness == Brightness.dark
+        ? Color.lerp(primary, Colors.white, 0.08) ?? primary
+        : Color.lerp(primary, Colors.black, 0.35) ?? primary;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+        if (!width.isFinite || !height.isFinite) {
+          return const SizedBox.shrink();
+        }
+
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [secondary, primary],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-        Positioned.fill(
-          child: CustomPaint(painter: _GridPainter(color: gridColor)),
-        ),
-      ],
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _AccentPainter(
+                  stripeColor: theme.brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.04)
+                      : Colors.white.withValues(alpha: 0.06),
+                ),
+              ),
+            ),
+            Align(
+              alignment: const Alignment(-1.1, -0.9),
+              child: Container(
+                width: width * 0.9,
+                height: width * 0.9,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      Colors.white.withValues(alpha: 0.16),
+                      Colors.white.withValues(alpha: 0.02),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Align(
+              alignment: const Alignment(1.05, 1.1),
+              child: Container(
+                width: width * 0.7,
+                height: width * 0.7,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      Colors.white.withValues(alpha: 0.10),
+                      Colors.white.withValues(alpha: 0.02),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            ..._foodSpots.map((spot) {
+              final icon = _foodIcons[spot.iconIndex % _foodIcons.length];
+              return Positioned(
+                left: spot.dx * width,
+                top: spot.dy * height,
+                child: Transform.rotate(
+                  angle: spot.rotation,
+                  child: Opacity(
+                    opacity: 0.32,
+                    child: Icon(
+                      icon,
+                      size: 35,
+                      color: Colors.white.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
+        );
+      },
     );
   }
 }
 
-class _GridPainter extends CustomPainter {
-  final Color color;
+class _AccentPainter extends CustomPainter {
+  final Color stripeColor;
 
-  _GridPainter({required this.color});
+  _AccentPainter({required this.stripeColor});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final gridPaint = Paint()
-      ..color = color
-      ..strokeWidth = 1;
+    final paint = Paint()..color = stripeColor;
 
-    const spacing = 32.0;
-    for (double x = 0; x <= size.width; x += spacing) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-    }
-    for (double y = 0; y <= size.height; y += spacing) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
+    final path1 = Path()
+      ..moveTo(0, size.height * 0.18)
+      ..lineTo(size.width * 0.55, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width, size.height * 0.14)
+      ..close();
 
-    final dotsPaint = Paint()..color = color.withValues(alpha: 0.6);
-    const dots = [
-      Offset(40, 60),
-      Offset(140, 120),
-      Offset(80, 200),
-      Offset(240, 70),
-      Offset(300, 180),
-      Offset(200, 260),
-      Offset(60, 320),
-      Offset(180, 380),
-      Offset(320, 340),
-    ];
+    final path2 = Path()
+      ..moveTo(0, size.height)
+      ..lineTo(size.width * 0.35, size.height)
+      ..lineTo(size.width, size.height * 0.58)
+      ..lineTo(size.width, size.height * 0.7)
+      ..lineTo(size.width * 0.25, size.height)
+      ..close();
 
-    for (final dot in dots) {
-      canvas.drawCircle(dot, 1.2, dotsPaint);
-    }
+    canvas.drawPath(path1, paint);
+    canvas.drawPath(path2, paint);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+class _FoodSpot {
+  final double dx;
+  final double dy;
+  final int iconIndex;
+  final double rotation;
+
+  const _FoodSpot({
+    required this.dx,
+    required this.dy,
+    required this.iconIndex,
+    this.rotation = 0,
+  });
+}
+
+const _foodIcons = [
+  Icons.local_pizza,
+  Icons.ramen_dining,
+  Icons.emoji_food_beverage,
+  Icons.icecream,
+  Icons.lunch_dining,
+  Icons.rice_bowl,
+  Icons.coffee,
+  Icons.cookie,
+  Icons.egg_alt,
+  Icons.fastfood,
+  Icons.kebab_dining,
+  Icons.local_dining,
+  Icons.set_meal,
+  Icons.soup_kitchen,
+  Icons.local_cafe,
+  Icons.bakery_dining,
+  Icons.brunch_dining,
+  Icons.cake,
+  Icons.donut_small,
+  Icons.icecream_outlined,
+  Icons.local_bar,
+  Icons.local_cafe_outlined,
+  Icons.local_drink,
+];
+
+const _foodSpots = [
+  _FoodSpot(dx: 0.03, dy: 0.05, iconIndex: 0, rotation: -0.06),
+  _FoodSpot(dx: 0.24, dy: 0.12, iconIndex: 1, rotation: 0.07),
+  _FoodSpot(dx: 0.08, dy: 0.22, iconIndex: 2, rotation: -0.05),
+  _FoodSpot(dx: 0.35, dy: 0.26, iconIndex: 3, rotation: 0.1),
+  _FoodSpot(dx: 0.46, dy: 0.16, iconIndex: 4, rotation: -0.08),
+  _FoodSpot(dx: 0.62, dy: 0.12, iconIndex: 5, rotation: 0.05),
+  _FoodSpot(dx: 0.78, dy: 0.10, iconIndex: 6, rotation: -0.04),
+  _FoodSpot(dx: 0.92, dy: 0.16, iconIndex: 7, rotation: 0.12),
+  _FoodSpot(dx: 0.18, dy: 0.34, iconIndex: 8, rotation: -0.1),
+  _FoodSpot(dx: 0.68, dy: 0.26, iconIndex: 9, rotation: 0.06),
+  _FoodSpot(dx: 0.54, dy: 0.32, iconIndex: 10, rotation: -0.07),
+  _FoodSpot(dx: 0.90, dy: 0.42, iconIndex: 7, rotation: -0.05),
+  _FoodSpot(dx: 0.20, dy: 0.60, iconIndex: 8, rotation: 0.08),
+  _FoodSpot(dx: 0.40, dy: 0.58, iconIndex: 9, rotation: -0.06),
+  _FoodSpot(dx: 0.60, dy: 0.56, iconIndex: 10, rotation: 0.1),
+  _FoodSpot(dx: 0.82, dy: 0.58, iconIndex: 11, rotation: -0.08),
+  _FoodSpot(dx: 0.06, dy: 0.70, iconIndex: 12, rotation: 0.06),
+  _FoodSpot(dx: 0.26, dy: 0.68, iconIndex: 13, rotation: -0.05),
+  _FoodSpot(dx: 0.44, dy: 0.70, iconIndex: 14, rotation: 0.1),
+  _FoodSpot(dx: 0.64, dy: 0.68, iconIndex: 15, rotation: -0.07),
+  _FoodSpot(dx: 0.86, dy: 0.66, iconIndex: 16, rotation: 0.08),
+  _FoodSpot(dx: 0.14, dy: 0.80, iconIndex: 17, rotation: -0.04),
+  _FoodSpot(dx: 0.34, dy: 0.82, iconIndex: 18, rotation: 0.09),
+  _FoodSpot(dx: 0.56, dy: 0.80, iconIndex: 19, rotation: -0.08),
+  _FoodSpot(dx: 0.76, dy: 0.78, iconIndex: 20, rotation: 0.07),
+  _FoodSpot(dx: 0.92, dy: 0.76, iconIndex: 21, rotation: -0.06),
+  _FoodSpot(dx: 0.22, dy: 0.92, iconIndex: 22, rotation: 0.05),
+  _FoodSpot(dx: 0.46, dy: 0.90, iconIndex: 23, rotation: -0.09),
+  _FoodSpot(dx: 0.70, dy: 0.92, iconIndex: 24, rotation: 0.1),
+  _FoodSpot(dx: 0.90, dy: 0.90, iconIndex: 25, rotation: -0.08),
+];
 
 class FieldLabel extends StatelessWidget {
   final String text;

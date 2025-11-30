@@ -25,6 +25,8 @@ class _AuthScreenState extends State<AuthScreen> {
   void _switchToLogin() {
     setState(() {
       _selectedTab = AuthTab.login;
+      _nameController.clear();
+      _emailController.clear();
       _passwordController.clear();
       _confirmController.clear();
     });
@@ -142,6 +144,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          const SizedBox(height: 14),
                           Row(
                             children: [
                               const AppLogo(size: 48),
@@ -157,16 +160,16 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                           const SizedBox(height: 18),
                           const Text(
-                            'Get Started now',
+                            'Get Started',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 26,
+                              fontSize: 28,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'Create an account or log in to explore about our app',
+                            'Create an account or log in to explore the restaurant suite.',
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.8),
                               fontSize: 14,
@@ -328,6 +331,26 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                               const SizedBox(height: 18),
                               GoogleButton(onTap: () {}),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(
+                                    Icons.lock_outline,
+                                    size: 14,
+                                    color: Color(0xFF5F6368),
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Secure & encrypted sign-in',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF5F6368),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ),
