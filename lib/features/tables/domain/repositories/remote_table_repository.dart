@@ -11,6 +11,14 @@ abstract interface class RemoteTableRepository {
     String status,
   });
 
+  Future<Either<Failure, TableEntity>> updateTable({
+    required int tableId,
+    required String name,
+    required int capacity,
+    required int tableTypeId,
+    String status,
+  });
+
   Future<Either<Failure, List<TableEntity>>> getTables({
     required int restaurantId,
   });

@@ -48,6 +48,7 @@ import 'package:yummy/features/tables/domain/repositories/table_type_repository.
 import 'package:yummy/features/tables/domain/usecases/create_table_type_usecase.dart';
 import 'package:yummy/features/tables/domain/usecases/get_remote_tables_usecase.dart';
 import 'package:yummy/features/tables/domain/usecases/get_table_types_usecase.dart';
+import 'package:yummy/features/tables/domain/usecases/update_remote_table_usecase.dart';
 import 'package:yummy/features/tables/domain/usecases/delete_remote_table_usecase.dart';
 import 'package:yummy/features/restaurant/data/datasources/restaurant_remote_data_source.dart';
 import 'package:yummy/features/restaurant/data/repositories/restaurant_repository_impl.dart'
@@ -134,6 +135,7 @@ Future<void> setupDependencies() async {
   sl.registerFactory(() => GetRemoteTablesUseCase(sl()));
   sl.registerFactory(() => GetTableTypesUseCase(sl()));
   sl.registerFactory(() => DeleteRemoteTableUseCase(sl()));
+  sl.registerFactory(() => UpdateRemoteTableUseCase(sl()));
 
   // Blocs
   sl.registerFactory(
@@ -160,6 +162,7 @@ Future<void> setupDependencies() async {
       getTableTypes: sl(),
       getRemoteTables: sl(),
       deleteRemoteTable: sl(),
+      updateRemoteTable: sl(),
     ),
   );
   sl.registerFactory(

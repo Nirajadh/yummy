@@ -14,6 +14,14 @@ abstract interface class TableRemoteDataSource {
     String status,
   });
 
+  Future<RestaurantTableModel> updateTable({
+    required int tableId,
+    required String name,
+    required int capacity,
+    required int tableTypeId,
+    String status,
+  });
+
   Future<List<RestaurantTableModel>> getTables({required int restaurantId});
 
   Future<void> deleteTable({required int tableId});
@@ -60,6 +68,51 @@ class TableRemoteDataSourceImpl implements TableRemoteDataSource {
           ? (e.response!.data['detail'] ??
                 e.response!.data['message'] ??
                 'Request failed')
+          : e.message;
+      throw ServerException(message?.toString() ?? 'Request failed');
+    } on SocketException {
+      throw const NetworkException('No Internet Connection');
+    } on FormatException {
+      throw const DataParsingException('Bad response format');
+    }
+  }
+
+  @override
+  Future<RestaurantTableModel> updateTable({
+    required int tableId,
+    required String name,
+    required int capacity,
+    required int tableTypeId,
+    String status = 'free',
+  }) async {
+    try {
+      final response = await appApis.sendRequest.put(
+        '/restaurants/tables/$tableId',
+        data: {
+          'name': name,
+          'capacity': capacity,
+          'table_type_id': tableTypeId,
+          'status': status,
+        },
+      );
+
+      final statusCode = response.statusCode ?? 0;
+      if (statusCode >= 200 && statusCode < 300 && response.data is Map) {
+        final map = response.data as Map<String, dynamic>;
+        final data = map['data'];
+        if (data is Map<String, dynamic>) {
+          return RestaurantTableModel.fromJson(data);
+        }
+        throw const ServerException('Missing table data');
+      }
+      throw ServerException(
+        'Unexpected error: ${response.statusCode ?? 'no status'}',
+      );
+    } on DioException catch (e) {
+      final message = e.response?.data is Map<String, dynamic>
+          ? (e.response!.data['detail'] ??
+              e.response!.data['message'] ??
+              'Request failed')
           : e.message;
       throw ServerException(message?.toString() ?? 'Request failed');
     } on SocketException {

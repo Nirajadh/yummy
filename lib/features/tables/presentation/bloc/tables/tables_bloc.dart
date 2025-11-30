@@ -11,6 +11,7 @@ import 'package:yummy/features/tables/domain/usecases/create_table_type_usecase.
 import 'package:yummy/features/tables/domain/usecases/get_table_types_usecase.dart';
 import 'package:yummy/features/tables/domain/usecases/get_remote_tables_usecase.dart';
 import 'package:yummy/features/tables/domain/usecases/delete_remote_table_usecase.dart';
+import 'package:yummy/features/tables/domain/usecases/update_remote_table_usecase.dart';
 import 'package:yummy/core/error/failure.dart';
 
 part 'tables_event.dart';
@@ -25,6 +26,7 @@ class TablesBloc extends Bloc<TablesEvent, TablesState> {
   final GetTableTypesUseCase _getTableTypes;
   final GetRemoteTablesUseCase _getRemoteTables;
   final DeleteRemoteTableUseCase _deleteRemoteTable;
+  final UpdateRemoteTableUseCase _updateRemoteTable;
 
   TablesBloc({
     required UpsertTableUseCase upsertTable,
@@ -34,6 +36,7 @@ class TablesBloc extends Bloc<TablesEvent, TablesState> {
     required GetTableTypesUseCase getTableTypes,
     required GetRemoteTablesUseCase getRemoteTables,
     required DeleteRemoteTableUseCase deleteRemoteTable,
+    required UpdateRemoteTableUseCase updateRemoteTable,
   }) : _upsertTable = upsertTable,
        _deleteTable = deleteTable,
        _createRemoteTable = createRemoteTable,
@@ -41,6 +44,7 @@ class TablesBloc extends Bloc<TablesEvent, TablesState> {
        _getTableTypes = getTableTypes,
        _getRemoteTables = getRemoteTables,
        _deleteRemoteTable = deleteRemoteTable,
+       _updateRemoteTable = updateRemoteTable,
        super(const TablesState()) {
     on<TablesRequested>(_onRequested);
     on<TableSaved>(_onSaved);
@@ -121,13 +125,21 @@ class TablesBloc extends Bloc<TablesEvent, TablesState> {
     if (restaurantId != null && restaurantId > 0) {
       final tableTypeId = state.categoryTypeIds[event.table.category] ?? 1;
       final tableWithType = event.table.copyWith(tableTypeId: tableTypeId);
-      final remoteResult = await _createRemoteTable(
-        restaurantId: restaurantId,
-        name: event.table.name,
-        capacity: event.table.capacity,
-        tableTypeId: tableTypeId,
-        status: event.table.status,
-      );
+      final remoteResult = event.table.id != null
+          ? await _updateRemoteTable(
+            tableId: event.table.id!,
+            name: event.table.name,
+            capacity: event.table.capacity,
+            tableTypeId: tableTypeId,
+            status: event.table.status,
+          )
+          : await _createRemoteTable(
+            restaurantId: restaurantId,
+            name: event.table.name,
+            capacity: event.table.capacity,
+            tableTypeId: tableTypeId,
+            status: event.table.status,
+          );
       remoteResult.fold(
         (_) async {
           await _upsertTable(tableWithType);

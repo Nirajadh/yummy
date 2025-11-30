@@ -60,6 +60,34 @@ class RemoteTableRepositoryImpl implements RemoteTableRepository {
   }
 
   @override
+  Future<Either<Failure, TableEntity>> updateTable({
+    required int tableId,
+    required String name,
+    required int capacity,
+    required int tableTypeId,
+    String status = 'free',
+  }) async {
+    try {
+      final model = await remote.updateTable(
+        tableId: tableId,
+        name: name,
+        capacity: capacity,
+        tableTypeId: tableTypeId,
+        status: status,
+      );
+      return Right(RestaurantTableMapper.toEntity(model));
+    } on ServerException catch (e) {
+      return Left(Failure(e.message));
+    } on NetworkException catch (e) {
+      return Left(Failure(e.message));
+    } on DataParsingException catch (e) {
+      return Left(Failure(e.message));
+    } catch (e) {
+      return Left(Failure('An unexpected error occurred: $e'));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> deleteTable({required int tableId}) async {
     try {
       await remote.deleteTable(tableId: tableId);

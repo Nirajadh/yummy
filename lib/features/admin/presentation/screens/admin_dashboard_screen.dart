@@ -93,7 +93,8 @@ class AdminDashboardScreen extends StatelessWidget {
           );
         }
         final details = snapshot.data ?? const RestaurantDetails();
-        if (details.isComplete) return const SizedBox.shrink();
+        final hasProfile = (details.id ?? 0) > 0 || details.hasAnyData;
+        if (hasProfile) return const SizedBox.shrink();
 
         return Card(
           shape: RoundedRectangleBorder(
