@@ -29,11 +29,6 @@ class KitchenDashboardScreen extends StatelessWidget {
                 );
                 if (shouldLogout && context.mounted) {
                   context.read<AuthBloc>().add(const LogoutRequested());
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/login',
-                    (route) => false,
-                  );
                 }
               },
             ),

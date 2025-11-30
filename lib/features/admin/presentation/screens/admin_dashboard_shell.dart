@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:yummy/features/groups/presentation/screens/groups_screen.dart';
 import 'package:yummy/features/orders/presentation/screens/orders_screen.dart';
 import 'package:yummy/features/tables/presentation/screens/tables_screen.dart';
+import 'package:yummy/features/tables/presentation/bloc/tables/tables_bloc.dart';
 
 class AdminDashboardShell extends StatefulWidget {
   const AdminDashboardShell({super.key});
@@ -25,7 +27,10 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
         onOpenMore: () => Navigator.pushNamed(context, '/settings'),
       ),
       const OrdersScreen(),
-      const TablesScreen(allowManageTables: false),
+      const TablesScreen(
+        allowManageTables: false,
+        loadOnInit: false,
+      ),
       const GroupsScreen(),
     ];
   }
@@ -62,7 +67,16 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
             label: 'Groups',
           ),
         ],
-        onDestinationSelected: (value) => setState(() => _index = value),
+        onDestinationSelected: (value) {
+          setState(() => _index = value);
+          if (value == 2) {
+            final bloc = context.read<TablesBloc>();
+            if (bloc.state.status == TablesStatus.initial ||
+                bloc.state.status == TablesStatus.failure) {
+              bloc.add(const TablesRequested());
+            }
+          }
+        },
       ),
     );
   }

@@ -59,11 +59,6 @@ class AdminMoreScreen extends StatelessWidget {
           final shouldLogout = await showLogoutConfirmationDialog(context);
           if (shouldLogout && context.mounted) {
             context.read<AuthBloc>().add(const LogoutRequested());
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/login',
-              (route) => false,
-            );
           }
         },
       ),

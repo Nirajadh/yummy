@@ -124,7 +124,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await logoutUsecase();
     result.fold(
       (failure) => emit(AuthFailure(message: failure.message)),
-      (_) => emit(AuthLoggedOut()),
+      (_) async {
+        await restaurantDetailsService.clear();
+        emit(AuthLoggedOut());
+      },
     );
   }
 }

@@ -15,11 +15,13 @@ const _statusColorMap = <String, Color>{
 class TablesScreen extends StatefulWidget {
   final bool allowManageTables;
   final String dashboardRoute;
+  final bool loadOnInit;
 
   const TablesScreen({
     super.key,
     this.allowManageTables = true,
     this.dashboardRoute = '/admin-dashboard',
+    this.loadOnInit = true,
   });
 
   @override
@@ -113,6 +115,14 @@ class _TablesScreenState extends State<TablesScreen> {
         ? widget.dashboardRoute
         : '/admin-dashboard';
     Navigator.pushNamedAndRemoveUntil(context, target, (route) => false);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.loadOnInit) {
+      context.read<TablesBloc>().add(const TablesRequested());
+    }
   }
 
   @override

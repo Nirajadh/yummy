@@ -19,50 +19,98 @@ Future<void> main() async {
   runApp(const MyRestroApp());
 }
 
-class MyRestroApp extends StatelessWidget {
+class MyRestroApp extends StatefulWidget {
   const MyRestroApp({super.key});
+
+  @override
+  State<MyRestroApp> createState() => _MyRestroAppState();
+}
+
+class _MyRestroAppState extends State<MyRestroApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  int _sessionKey = 0;
+
+  void _resetFeatureBlocs() {
+    setState(() => _sessionKey++);
+  }
 
   @override
   Widget build(BuildContext context) {
     return RepositoryProvider<RestaurantRepository>.value(
       value: sl<RestaurantRepository>(),
-      child: MultiBlocProvider(
-        providers: [
-          BlocProvider(create: (_) => sl<AuthBloc>()),
-          BlocProvider(
-            create: (_) =>
-                sl<AdminDashboardBloc>()..add(const AdminDashboardStarted()),
+      child: BlocProvider(
+        create: (_) => sl<AuthBloc>(),
+        child: BlocListener<AuthBloc, AuthState>(
+          listenWhen: (previous, current) =>
+              current is AuthLoggedOut || current is AuthLoginSuccess,
+          listener: (context, state) {
+            if (state is AuthLoggedOut) {
+              _resetFeatureBlocs();
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+                  '/auth',
+                  (route) => false,
+                );
+              });
+            } else if (state is AuthLoginSuccess) {
+              _resetFeatureBlocs();
+            }
+          },
+          child: _AppScope(
+            navigatorKey: _navigatorKey,
+            sessionKey: _sessionKey,
           ),
-          BlocProvider(
-            create: (_) =>
-                sl<StaffDashboardBloc>()..add(const StaffDashboardStarted()),
-          ),
-          BlocProvider(
-            create: (_) => sl<OrdersBloc>()..add(const OrdersRequested()),
-          ),
-          BlocProvider(
-            create: (_) => sl<TablesBloc>()..add(const TablesRequested()),
-          ),
-          BlocProvider(
-            create: (_) => sl<GroupsBloc>()..add(const GroupsRequested()),
-          ),
-          BlocProvider(
-            create: (_) => sl<MenuBloc>()..add(const MenuRequested()),
-          ),
-          BlocProvider(
-            create: (_) =>
-                sl<KitchenKotBloc>()..add(const KitchenKotRequested()),
-          ),
-        ],
-        child: MaterialApp(
-          title: 'Yummy',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: ThemeMode.system,
-          initialRoute: '/',
-          onGenerateRoute: AppRouter.onGenerateRoute,
         ),
+      ),
+    );
+  }
+}
+
+class _AppScope extends StatelessWidget {
+  final GlobalKey<NavigatorState> navigatorKey;
+  final int sessionKey;
+
+  const _AppScope({
+    required this.navigatorKey,
+    required this.sessionKey,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      key: ValueKey('session-$sessionKey'),
+      providers: [
+        BlocProvider(
+          create: (_) =>
+              sl<AdminDashboardBloc>()..add(const AdminDashboardStarted()),
+        ),
+        BlocProvider(
+          create: (_) =>
+              sl<StaffDashboardBloc>()..add(const StaffDashboardStarted()),
+        ),
+        BlocProvider(
+          create: (_) => sl<OrdersBloc>()..add(const OrdersRequested()),
+        ),
+        BlocProvider(create: (_) => sl<TablesBloc>()),
+        BlocProvider(
+          create: (_) => sl<GroupsBloc>()..add(const GroupsRequested()),
+        ),
+        BlocProvider(
+          create: (_) => sl<MenuBloc>()..add(const MenuRequested()),
+        ),
+        BlocProvider(
+          create: (_) => sl<KitchenKotBloc>()..add(const KitchenKotRequested()),
+        ),
+      ],
+      child: MaterialApp(
+        navigatorKey: navigatorKey,
+        title: 'Yummy',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.system,
+        initialRoute: '/',
+        onGenerateRoute: AppRouter.onGenerateRoute,
       ),
     );
   }
