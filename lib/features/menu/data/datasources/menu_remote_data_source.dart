@@ -115,15 +115,14 @@ class MenuRemoteDataSourceImpl implements MenuRemoteDataSource {
     String? description,
     String? imagePath,
   }) async {
-    final form = FormData.fromMap({
-      'name': name,
-      'price': price,
-      'item_category_id': itemCategoryId,
-      if (description != null && description.isNotEmpty)
-        'description': description,
-      if (imagePath != null && imagePath.isNotEmpty)
-        'image': await MultipartFile.fromFile(imagePath),
-    });
+    final form = await _buildFormData(
+      name: name,
+      price: price,
+      itemCategoryId: itemCategoryId,
+      description: description,
+      imagePath: imagePath,
+      isUpdate: false,
+    );
     try {
       final response = await appApis.sendRequest.post(
         '/menus/$restaurantId',
@@ -164,14 +163,14 @@ class MenuRemoteDataSourceImpl implements MenuRemoteDataSource {
     String? description,
     String? imagePath,
   }) async {
-    final form = FormData.fromMap({
-      if (name != null) 'name': name,
-      if (price != null) 'price': price,
-      if (itemCategoryId != null) 'item_category_id': itemCategoryId,
-      if (description != null) 'description': description,
-      if (imagePath != null && imagePath.isNotEmpty)
-        'image': await MultipartFile.fromFile(imagePath),
-    });
+    final form = await _buildFormData(
+      name: name,
+      price: price,
+      itemCategoryId: itemCategoryId,
+      description: description,
+      imagePath: imagePath,
+      isUpdate: true,
+    );
     try {
       final response = await appApis.sendRequest.put('/menus/$id', data: form);
       final status = response.statusCode ?? 0;
@@ -223,5 +222,33 @@ class MenuRemoteDataSourceImpl implements MenuRemoteDataSource {
     } on FormatException {
       throw const DataParsingException('Bad response format');
     }
+  }
+
+  Future<FormData> _buildFormData({
+    required bool isUpdate,
+    String? name,
+    double? price,
+    int? itemCategoryId,
+    String? description,
+    String? imagePath,
+  }) async {
+    final Map<String, dynamic> data = {};
+    if (!isUpdate || name != null) data['name'] = name;
+    if (!isUpdate || price != null) data['price'] = price;
+    if (!isUpdate || itemCategoryId != null) {
+      data['item_category_id'] = itemCategoryId;
+    }
+    if (description != null && description.isNotEmpty) {
+      data['description'] = description;
+    }
+    if (imagePath != null && imagePath.isNotEmpty) {
+      final file = File(imagePath);
+      final filename = imagePath.split(Platform.pathSeparator).last;
+      data['image'] = await MultipartFile.fromFile(
+        file.path,
+        filename: filename.isNotEmpty ? filename : 'upload.jpg',
+      );
+    }
+    return FormData.fromMap(data);
   }
 }

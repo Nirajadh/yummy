@@ -12,7 +12,10 @@ import 'package:yummy/features/finance/presentation/screens/purchase_screen.dart
 import 'package:yummy/features/finance/presentation/screens/reports_screen.dart';
 import 'package:yummy/features/groups/presentation/screens/group_create_screen.dart';
 import 'package:yummy/features/groups/presentation/screens/groups_screen.dart';
+import 'package:yummy/features/item_category/presentation/bloc/item_category_bloc.dart';
+import 'package:yummy/features/menu/presentation/bloc/menu_item_form_bloc.dart';
 import 'package:yummy/features/kitchen/presentation/screens/kitchen_dashboard_screen.dart';
+import 'package:yummy/features/item_category/presentation/screens/item_categories_screen.dart';
 import 'package:yummy/features/restaurant/presentation/restaurant_details_screen.dart';
 
 import 'package:yummy/features/restaurant/presentation/screens/restaurant_hub_screen.dart';
@@ -147,11 +150,30 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const MenuManagementScreen());
       case '/menu-add':
         return MaterialPageRoute(
-          builder: (_) => const MenuItemFormScreen(isEditing: false),
+          builder: (_) => MultiBlocProvider(
+            providers: [
+              BlocProvider(create: (_) => sl<ItemCategoryBloc>()),
+              BlocProvider(create: (_) => MenuItemFormBloc()),
+            ],
+            child: const MenuItemFormScreen(isEditing: false),
+          ),
         );
       case '/menu-edit':
         return MaterialPageRoute(
-          builder: (_) => const MenuItemFormScreen(isEditing: true),
+          builder: (_) => MultiBlocProvider(
+            providers: [
+              BlocProvider(create: (_) => sl<ItemCategoryBloc>()),
+              BlocProvider(create: (_) => MenuItemFormBloc()),
+            ],
+            child: const MenuItemFormScreen(isEditing: true),
+          ),
+        );
+      case '/item-categories':
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (_) => sl<ItemCategoryBloc>(),
+            child: const ItemCategoriesScreen(),
+          ),
         );
       case '/expenses':
         return MaterialPageRoute(builder: (_) => const ExpensesScreen());

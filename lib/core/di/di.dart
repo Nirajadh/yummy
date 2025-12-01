@@ -23,8 +23,21 @@ import 'package:yummy/features/kitchen/data/repositories/kitchen_repository_impl
 import 'package:yummy/features/kitchen/domain/repositories/kitchen_repository.dart';
 import 'package:yummy/features/kitchen/domain/usecases/get_kitchen_kot_tickets_usecase.dart';
 import 'package:yummy/features/kitchen/presentation/bloc/kitchen_kot/kitchen_kot_bloc.dart';
-import 'package:yummy/features/menu/domain/usecases/get_menu_items_usecase.dart';
-import 'package:yummy/features/menu/domain/usecases/upsert_menu_item_usecase.dart';
+import 'package:yummy/features/item_category/data/datasources/item_category_remote_data_source.dart';
+import 'package:yummy/features/item_category/data/repositories/item_category_repository_impl.dart';
+import 'package:yummy/features/item_category/domain/repositories/item_category_repository.dart';
+import 'package:yummy/features/item_category/domain/usecases/create_item_category_usecase.dart';
+import 'package:yummy/features/item_category/domain/usecases/delete_item_category_usecase.dart';
+import 'package:yummy/features/item_category/domain/usecases/get_item_categories_usecase.dart';
+import 'package:yummy/features/item_category/domain/usecases/update_item_category_usecase.dart';
+import 'package:yummy/features/item_category/presentation/bloc/item_category_bloc.dart';
+import 'package:yummy/features/menu/data/datasources/menu_remote_data_source.dart';
+import 'package:yummy/features/menu/data/repositories/menu_repository_impl.dart';
+import 'package:yummy/features/menu/domain/repositories/menu_repository.dart';
+import 'package:yummy/features/menu/domain/usecases/create_menu_usecase.dart';
+import 'package:yummy/features/menu/domain/usecases/delete_menu_usecase.dart';
+import 'package:yummy/features/menu/domain/usecases/get_menus_by_restaurant_usecase.dart';
+import 'package:yummy/features/menu/domain/usecases/update_menu_usecase.dart';
 import 'package:yummy/features/menu/presentation/bloc/menu/menu_bloc.dart';
 import 'package:yummy/features/orders/domain/usecases/get_active_orders_usecase.dart';
 import 'package:yummy/features/orders/presentation/bloc/orders/orders_bloc.dart';
@@ -84,6 +97,12 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton<KitchenRepository>(
     () => KitchenRepositoryImpl(base: sl()),
   );
+  sl.registerLazySingleton<ItemCategoryRemoteDataSource>(
+    () => ItemCategoryRemoteDataSourceImpl(appApis: sl()),
+  );
+  sl.registerLazySingleton<ItemCategoryRepository>(
+    () => ItemCategoryRepositoryImpl(remote: sl()),
+  );
   sl.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(appApis: sl()),
   );
@@ -108,6 +127,12 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton<TableTypeRemoteDataSource>(
     () => TableTypeRemoteDataSourceImpl(appApis: sl()),
   );
+  sl.registerLazySingleton<MenuRemoteDataSource>(
+    () => MenuRemoteDataSourceImpl(appApis: sl()),
+  );
+  sl.registerLazySingleton<MenuRepository>(
+    () => MenuRepositoryImpl(remote: sl()),
+  );
 
   // Use cases
   sl.registerFactory(() => RegisterUsecase(authRepository: sl()));
@@ -124,9 +149,15 @@ Future<void> setupDependencies() async {
   sl.registerFactory(() => GetGroupsUseCase(sl()));
   sl.registerFactory(() => UpsertGroupUseCase(sl()));
   sl.registerFactory(() => ToggleGroupStatusUseCase(sl()));
-  sl.registerFactory(() => GetMenuItemsUseCase(sl()));
-  sl.registerFactory(() => UpsertMenuItemUseCase(sl()));
+  sl.registerFactory(() => GetMenusByRestaurantUseCase(sl()));
+  sl.registerFactory(() => CreateMenuUseCase(sl()));
+  sl.registerFactory(() => UpdateMenuUseCase(sl()));
+  sl.registerFactory(() => DeleteMenuUseCase(sl()));
   sl.registerFactory(() => GetKitchenKotTicketsUseCase(sl()));
+  sl.registerFactory(() => GetItemCategoriesUseCase(sl()));
+  sl.registerFactory(() => CreateItemCategoryUseCase(sl()));
+  sl.registerFactory(() => UpdateItemCategoryUseCase(sl()));
+  sl.registerFactory(() => DeleteItemCategoryUseCase(sl()));
   sl.registerFactory(() => CreateRestaurantUseCase(sl()));
   sl.registerFactory(() => UpdateRestaurantUseCase(sl()));
   sl.registerFactory(() => GetRestaurantByUserUsecase(sl()));
@@ -169,10 +200,27 @@ Future<void> setupDependencies() async {
     () =>
         GroupsBloc(getGroups: sl(), upsertGroup: sl(), toggleGroupStatus: sl()),
   );
-  sl.registerFactory(() => MenuBloc(getMenuItems: sl(), upsertMenuItem: sl()));
+  sl.registerFactory(
+    () => MenuBloc(
+      getMenus: sl(),
+      createMenu: sl(),
+      updateMenu: sl(),
+      deleteMenu: sl(),
+      restaurantDetailsService: sl(),
+    ),
+  );
   sl.registerFactory(() => KitchenKotBloc(getTickets: sl()));
   sl.registerFactory(
     () => RestaurantBloc(createRestaurant: sl(), updateRestaurant: sl()),
+  );
+  sl.registerFactory(
+    () => ItemCategoryBloc(
+      getCategories: sl(),
+      createCategory: sl(),
+      updateCategory: sl(),
+      deleteCategory: sl(),
+      restaurantDetailsService: sl(),
+    ),
   );
   sl.registerFactory(() => SettingsBloc());
 }

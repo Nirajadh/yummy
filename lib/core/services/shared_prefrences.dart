@@ -14,13 +14,13 @@ class SecureStorageService {
     await preferences.setString(key, value);
   }
 
-  delete({bool shouldDeleteAll = false, String? key}) async {
+  Future<void> delete({bool shouldDeleteAll = false, String? key}) async {
     preferences = await SharedPreferences.getInstance();
     if (shouldDeleteAll) {
-      preferences.clear();
+      await preferences.clear();
     } else {
       if (key != null) {
-        preferences.remove(key);
+        await preferences.remove(key);
       }
     }
   }

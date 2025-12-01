@@ -8,6 +8,7 @@ class LoginModelMapper {
     return LoginEntity(
       accessToken: data?.accessToken ?? '',
       tokenType: data?.tokenType ?? '',
+      refreshToken: data?.refreshToken ?? '',
       userId: data?.userId ?? 0,
       userName: data?.userName ?? '',
       email: data?.email ?? '',

@@ -26,6 +26,7 @@ abstract interface class AuthRemoteDataSource {
     required String confirmPassword,
   });
   Future<List<UserModel>> getAllUsers();
+  Future<void> logout({String? refreshToken});
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -221,6 +222,29 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
                 'Request failed')
           : e.message;
       throw ServerException(message?.toString() ?? 'Request failed');
+    } on SocketException {
+      throw const NetworkException('No Internet Connection');
+    } on FormatException {
+      throw const DataParsingException('Bad response format');
+    }
+  }
+
+  @override
+  Future<void> logout({String? refreshToken}) async {
+    try {
+      await appApis.sendRequest.post(
+        AppApi.authApis.logout,
+        data: refreshToken != null && refreshToken.isNotEmpty
+            ? {'refresh_token': refreshToken}
+            : null,
+      );
+    } on DioException catch (e) {
+      final message = e.response?.data is Map<String, dynamic>
+          ? (e.response!.data['detail'] ??
+                e.response!.data['message'] ??
+                'Logout failed')
+          : e.message;
+      throw ServerException(message?.toString() ?? 'Logout failed');
     } on SocketException {
       throw const NetworkException('No Internet Connection');
     } on FormatException {

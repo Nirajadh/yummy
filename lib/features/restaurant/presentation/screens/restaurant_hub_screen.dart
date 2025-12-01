@@ -27,6 +27,12 @@ class RestaurantHubScreen extends StatelessWidget {
         route: '/menu-management',
       ),
       _RestaurantItem(
+        title: 'Item Categories',
+        subtitle: 'Organize menu by categories',
+        icon: Icons.category_outlined,
+        route: '/item-categories',
+      ),
+      _RestaurantItem(
         title: 'Manage Tables',
         subtitle: 'Create and organize table layouts',
         icon: Icons.table_bar_outlined,

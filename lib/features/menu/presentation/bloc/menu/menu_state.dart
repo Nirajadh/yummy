@@ -5,26 +5,34 @@ enum MenuStatus { initial, loading, success, failure }
 class MenuState extends Equatable {
   final MenuStatus status;
   final List<MenuItemEntity> items;
-  final String? errorMessage;
+  final bool submitting;
+  final int? deletingId;
+  final String? message;
 
   const MenuState({
     this.status = MenuStatus.initial,
     this.items = const [],
-    this.errorMessage,
+    this.submitting = false,
+    this.deletingId,
+    this.message,
   });
 
   MenuState copyWith({
     MenuStatus? status,
     List<MenuItemEntity>? items,
-    String? errorMessage,
+    bool? submitting,
+    int? deletingId,
+    String? message,
   }) {
     return MenuState(
       status: status ?? this.status,
       items: items ?? this.items,
-      errorMessage: errorMessage ?? this.errorMessage,
+      submitting: submitting ?? this.submitting,
+      deletingId: deletingId,
+      message: message,
     );
   }
 
   @override
-  List<Object?> get props => [status, items, errorMessage];
+  List<Object?> get props => [status, items, submitting, deletingId, message];
 }

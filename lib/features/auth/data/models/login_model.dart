@@ -20,6 +20,7 @@ class LoginModel {
 class LoginData {
   final String accessToken;
   final String tokenType;
+  final String refreshToken;
   final int userId;
   final String userName;
   final String email;
@@ -28,6 +29,7 @@ class LoginData {
   LoginData({
     required this.accessToken,
     required this.tokenType,
+    required this.refreshToken,
     required this.userId,
     required this.userName,
     required this.email,
@@ -38,6 +40,7 @@ class LoginData {
     return LoginData(
       accessToken: json['access_token']?.toString() ?? '',
       tokenType: json['token_type']?.toString() ?? '',
+      refreshToken: json['refresh_token']?.toString() ?? '',
       userId: json['user_id'] is int
           ? json['user_id']
           : int.tryParse(json['user_id']?.toString() ?? '') ?? 0,

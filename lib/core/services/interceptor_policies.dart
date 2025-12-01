@@ -16,6 +16,8 @@ class JwtInterceptor extends Interceptor {
     options.headers.putIfAbsent('Accept', () => 'application/json');
     if (accessToken != null && accessToken.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $accessToken';
+    } else {
+      options.headers.remove('Authorization');
     }
     handler.next(options);
   }

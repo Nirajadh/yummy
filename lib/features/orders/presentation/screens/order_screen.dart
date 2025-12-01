@@ -60,17 +60,33 @@ class _OrderScreenState extends State<OrderScreen> {
     List<MenuItemEntity> source,
     String selectedCategory,
   ) {
-    if (selectedCategory == 'All') return source;
-    return source.where((item) => item.category == selectedCategory).toList();
+    if (selectedCategory == 'All' || selectedCategory.isEmpty) return source;
+    return source
+        .where(
+          (item) =>
+              _categoryLabel(item).toLowerCase() ==
+              selectedCategory.toLowerCase(),
+        )
+        .toList();
   }
 
   List<String> _categoriesFromMenu(List<MenuItemEntity> items) {
     final categories = <String>{};
     for (final item in items) {
-      categories.add(item.category);
+      categories.add(_categoryLabel(item));
     }
     final sorted = categories.toList()..sort();
     return ['All', ...sorted];
+  }
+
+  String _categoryLabel(MenuItemEntity item) {
+    if ((item.categoryName ?? '').isNotEmpty) {
+      return item.categoryName!;
+    }
+    if (item.itemCategoryId != null) {
+      return 'Category ${item.itemCategoryId}';
+    }
+    return 'Uncategorized';
   }
 
   List<BillLineItem> _billLinesFromCart(OrderCartState cartState) {

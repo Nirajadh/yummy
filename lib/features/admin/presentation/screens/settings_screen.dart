@@ -242,7 +242,7 @@ class _SettingSwitch extends StatelessWidget {
         ),
         value: value,
         onChanged: onChanged,
-        activeColor: theme.colorScheme.primary,
+        activeThumbColor: theme.colorScheme.primary,
       ),
     );
   }

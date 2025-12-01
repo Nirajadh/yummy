@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/core/di/di.dart';
+import 'package:yummy/core/app_apis.dart';
 import 'package:yummy/core/routes/app_router.dart';
 import 'package:yummy/core/themes/app_theme.dart';
 import 'package:yummy/features/admin/presentation/bloc/admin_dashboard/admin_dashboard_bloc.dart';
@@ -66,19 +68,38 @@ class _MyRestroAppState extends State<MyRestroApp> {
   }
 }
 
-class _AppScope extends StatelessWidget {
+class _AppScope extends StatefulWidget {
   final GlobalKey<NavigatorState> navigatorKey;
   final int sessionKey;
 
-  const _AppScope({
-    required this.navigatorKey,
-    required this.sessionKey,
-  });
+  const _AppScope({required this.navigatorKey, required this.sessionKey});
+
+  @override
+  State<_AppScope> createState() => _AppScopeState();
+}
+
+class _AppScopeState extends State<_AppScope> {
+  StreamSubscription<void>? _logoutSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _logoutSub = sl<AppApis>().onUnauthorizedLogout.listen((_) {
+      if (!mounted) return;
+      context.read<AuthBloc>().add(const LogoutRequested());
+    });
+  }
+
+  @override
+  void dispose() {
+    _logoutSub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
-      key: ValueKey('session-$sessionKey'),
+      key: ValueKey('session-${widget.sessionKey}'),
       providers: [
         BlocProvider(
           create: (_) =>
@@ -95,15 +116,13 @@ class _AppScope extends StatelessWidget {
         BlocProvider(
           create: (_) => sl<GroupsBloc>()..add(const GroupsRequested()),
         ),
-        BlocProvider(
-          create: (_) => sl<MenuBloc>()..add(const MenuRequested()),
-        ),
+        BlocProvider(create: (_) => sl<MenuBloc>()..add(const MenuRequested())),
         BlocProvider(
           create: (_) => sl<KitchenKotBloc>()..add(const KitchenKotRequested()),
         ),
       ],
       child: MaterialApp(
-        navigatorKey: navigatorKey,
+        navigatorKey: widget.navigatorKey,
         title: 'Yummy',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,

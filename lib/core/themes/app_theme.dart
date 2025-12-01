@@ -54,7 +54,6 @@ class AppTheme {
       primary: AppColors.primary,
       secondary: AppColors.accentYellow,
       surface: Color(0xFF1B1D24),
-      background: Color(0xFF0F1014),
     ),
   );
 }

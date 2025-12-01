@@ -3,7 +3,6 @@ import 'package:yummy/features/finance/domain/entities/income_entry_entity.dart'
 import 'package:yummy/features/finance/domain/entities/purchase_entry_entity.dart';
 import 'package:yummy/features/groups/domain/entities/group_entity.dart';
 import 'package:yummy/features/kot/domain/entities/kot_ticket_entity.dart';
-import 'package:yummy/features/menu/domain/entities/menu_item_entity.dart';
 import 'package:yummy/features/orders/domain/entities/active_order_entity.dart';
 import 'package:yummy/features/orders/domain/entities/order_history_entry_entity.dart';
 import 'package:yummy/features/staff/domain/entities/staff_member_entity.dart';
@@ -18,9 +17,6 @@ abstract class RestaurantRepository {
   Future<List<GroupEntity>> getGroups();
   Future<void> upsertGroup(GroupEntity group);
   Future<void> toggleGroupStatus(String groupName);
-
-  Future<List<MenuItemEntity>> getMenuItems();
-  Future<void> upsertMenuItem(MenuItemEntity item);
 
   Future<DashboardSnapshot> getDashboardSnapshot();
   Future<List<ActiveOrderEntity>> getActiveOrders();

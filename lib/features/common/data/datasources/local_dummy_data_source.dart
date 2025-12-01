@@ -5,7 +5,6 @@ import 'package:yummy/features/finance/data/models/income_entry_model.dart';
 import 'package:yummy/features/finance/data/models/purchase_entry_model.dart';
 import 'package:yummy/features/groups/data/models/group_model.dart';
 import 'package:yummy/features/kot/data/models/kot_ticket_model.dart';
-import 'package:yummy/features/menu/data/models/menu_item_model.dart';
 import 'package:yummy/features/orders/data/models/active_order_model.dart';
 import 'package:yummy/features/orders/data/models/order_history_entry_model.dart';
 import 'package:yummy/features/staff/data/models/staff_member_model.dart';
@@ -13,16 +12,18 @@ import 'package:yummy/features/staff/data/models/staff_record_model.dart';
 import 'package:yummy/features/tables/data/models/table_model.dart';
 
 class LocalDummyDataSource {
-  final List<TableModel> _tables =
-      dummy.dummyTables.map(TableModel.fromDummy).toList();
-  final List<GroupModel> _groups =
-      dummy.dummyGroups.map(GroupModel.fromDummy).toList();
-  final List<MenuItemModel> _menu =
-      dummy.dummyMenuItems.map(MenuItemModel.fromDummy).toList();
-  final List<ActiveOrderModel> _activeOrders =
-      dummy.dummyActiveOrders.map(ActiveOrderModel.fromDummy).toList();
-  final List<OrderHistoryEntryModel> _orderHistory =
-      dummy.dummyOrderHistory.map(OrderHistoryEntryModel.fromDummy).toList();
+  final List<TableModel> _tables = dummy.dummyTables
+      .map(TableModel.fromDummy)
+      .toList();
+  final List<GroupModel> _groups = dummy.dummyGroups
+      .map(GroupModel.fromDummy)
+      .toList();
+  final List<ActiveOrderModel> _activeOrders = dummy.dummyActiveOrders
+      .map(ActiveOrderModel.fromDummy)
+      .toList();
+  final List<OrderHistoryEntryModel> _orderHistory = dummy.dummyOrderHistory
+      .map(OrderHistoryEntryModel.fromDummy)
+      .toList();
 
   List<TableModel> getTables() => List.unmodifiable(_tables);
 
@@ -59,22 +60,10 @@ class LocalDummyDataSource {
     }
   }
 
-  List<MenuItemModel> getMenuItems() => List.unmodifiable(_menu);
-
-  void upsertMenuItem(MenuItemModel item) {
-    final index = _menu.indexWhere((m) => m.name == item.name);
-    if (index == -1) {
-      _menu.add(item);
-    } else {
-      _menu[index] = item;
-    }
-  }
-
   List<DashboardMetricModel> getDashboardMetrics() =>
       dummy.dashboardMetrics.map(DashboardMetricModel.fromDummy).toList();
 
-  List<ActiveOrderModel> getActiveOrders() =>
-      List.unmodifiable(_activeOrders);
+  List<ActiveOrderModel> getActiveOrders() => List.unmodifiable(_activeOrders);
 
   List<OrderHistoryEntryModel> getOrderHistory() =>
       List.unmodifiable(_orderHistory);

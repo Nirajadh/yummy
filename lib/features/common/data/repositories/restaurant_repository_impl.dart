@@ -9,8 +9,6 @@ import 'package:yummy/features/groups/domain/entities/group_entity.dart';
 import 'package:yummy/features/groups/mapper/group_mapper.dart';
 import 'package:yummy/features/kot/domain/entities/kot_ticket_entity.dart';
 import 'package:yummy/features/kot/mapper/kot_ticket_mapper.dart';
-import 'package:yummy/features/menu/domain/entities/menu_item_entity.dart';
-import 'package:yummy/features/menu/mapper/menu_item_mapper.dart';
 import 'package:yummy/features/orders/domain/entities/active_order_entity.dart';
 import 'package:yummy/features/orders/domain/entities/order_history_entry_entity.dart';
 import 'package:yummy/features/orders/mapper/order_mapper.dart';
@@ -58,27 +56,21 @@ class RestaurantRepositoryImpl implements RestaurantRepository {
   }
 
   @override
-  Future<List<MenuItemEntity>> getMenuItems() async {
-    return local.getMenuItems().map(MenuItemMapper.toEntity).toList();
-  }
-
-  @override
-  Future<void> upsertMenuItem(MenuItemEntity item) async {
-    final dto = MenuItemMapper.fromEntity(item);
-    local.upsertMenuItem(dto);
-  }
-
-  @override
   Future<DashboardSnapshot> getDashboardSnapshot() async {
     return DashboardSnapshot(
-      metrics:
-          local.getDashboardMetrics().map(DashboardMapper.toEntity).toList(),
-      activeOrders:
-          local.getActiveOrders().map(OrderMapper.toActiveEntity).toList(),
-      orderHistory:
-          local.getOrderHistory().map(OrderMapper.toHistoryEntity).toList(),
-      expenses:
-          local.getExpenses().map(FinanceMapper.toExpenseEntity).toList(),
+      metrics: local
+          .getDashboardMetrics()
+          .map(DashboardMapper.toEntity)
+          .toList(),
+      activeOrders: local
+          .getActiveOrders()
+          .map(OrderMapper.toActiveEntity)
+          .toList(),
+      orderHistory: local
+          .getOrderHistory()
+          .map(OrderMapper.toHistoryEntity)
+          .toList(),
+      expenses: local.getExpenses().map(FinanceMapper.toExpenseEntity).toList(),
     );
   }
 

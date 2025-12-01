@@ -48,6 +48,14 @@ class AuthRepositoryImpl implements AuthRepository {
         key: 'token',
         value: entity.accessToken,
       );
+      await SecureStorageService().setValue(
+        key: 'refresh_token',
+        value: entity.refreshToken,
+      );
+      await SecureStorageService().setValue(
+        key: 'token_issued_at',
+        value: DateTime.now().toIso8601String(),
+      );
       await SecureStorageService().setValue(key: 'role', value: entity.role);
       await SecureStorageService().setValue(key: 'email', value: entity.email);
       await SecureStorageService().setValue(
@@ -114,6 +122,13 @@ class AuthRepositoryImpl implements AuthRepository {
           key: 'token',
           value: entity.accessToken,
         );
+        await SecureStorageService().delete(key: 'refresh_token');
+        await SecureStorageService().setValue(
+          key: 'token_issued_at',
+          value: DateTime.now().toIso8601String(),
+        );
+        // Admin registration response does not include refresh_token; user can
+        // obtain one on first login.
         await SecureStorageService().setValue(key: 'role', value: entity.role);
         await SecureStorageService().setValue(
           key: 'email',
@@ -154,11 +169,14 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, void>> logout() async {
+    final storage = SecureStorageService();
+    final refreshToken = await storage.getValue(key: 'refresh_token');
     try {
-      await SecureStorageService().delete(shouldDeleteAll: true);
-      return const Right(null);
+      await remoteDataSource.logout(refreshToken: refreshToken);
     } catch (e) {
-      return Left(Failure('Failed to logout: $e'));
+      // Even if the API logout fails, ensure local session is cleared.
     }
+    await storage.delete(shouldDeleteAll: true);
+    return const Right(null);
   }
 }
