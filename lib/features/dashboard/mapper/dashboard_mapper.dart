@@ -8,10 +8,7 @@ class DashboardMapper {
       title: model.title ?? '',
       value: model.value ?? '',
       trend: model.trend ?? 0,
-      icon: IconData(
-        model.iconCodePoint ?? Icons.help_outline.codePoint,
-        fontFamily: 'MaterialIcons',
-      ),
+      icon: _resolveIcon(model.iconCodePoint),
       color: Color(model.colorValue ?? Colors.grey.toARGB32()),
     );
   }
@@ -24,5 +21,25 @@ class DashboardMapper {
       iconCodePoint: entity.icon.codePoint,
       colorValue: entity.color.toARGB32(),
     );
+  }
+
+  static IconData _resolveIcon(int? codePoint) {
+    switch (codePoint) {
+      // These numeric values come from the Material icon code points.
+      case 58183: // insights
+        return Icons.insights;
+      case 58584: // point_of_sale
+        return Icons.point_of_sale;
+      case 58132: // history
+        return Icons.history;
+      case 58780: // shopping_cart
+        return Icons.shopping_cart;
+      case 57409: // account_balance_wallet
+        return Icons.account_balance_wallet;
+      case 58670: // request_page
+        return Icons.request_page;
+      default:
+        return Icons.help_outline;
+    }
   }
 }

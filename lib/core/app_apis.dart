@@ -6,7 +6,8 @@ import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'package:yummy/core/services/interceptor_policies.dart';
 import 'package:yummy/core/services/shared_prefrences.dart';
 
-const String baseUrl = 'http://192.168.1.85:8000';
+// const String baseUrl = 'http://192.168.1.85:8000';
+const String baseUrl = "https://yummy-2xfq.onrender.com";
 
 /// Simple Dio wrapper plus centralized endpoint builders.
 class AppApis {
