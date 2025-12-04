@@ -1,4 +1,4 @@
-part of 'order_cart_cubit.dart';
+part of 'order_cart_bloc.dart';
 
 class OrderCartState extends Equatable {
   final String selectedCategory;

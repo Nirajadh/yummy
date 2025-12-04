@@ -28,7 +28,7 @@ class OrderHistoryScreen extends StatelessWidget {
             Text('Status: ${entry.status}'),
             Text('Time: ${entry.timestamp}'),
             const SizedBox(height: 16),
-            const Text('Items (dummy)', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text('Items', style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             const Text('• Sample Item 1 x2\n• Sample Item 2 x1'),
             const SizedBox(height: 16),

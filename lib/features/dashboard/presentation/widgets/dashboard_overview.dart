@@ -53,6 +53,8 @@ class DashboardOverview extends StatelessWidget {
       0,
       (total, expense) => total + expense.amount,
     );
+    final displayedMetrics =
+        metrics.isNotEmpty ? metrics : _staticFallbackMetrics();
 
     return Scaffold(
       appBar: AppBar(
@@ -178,9 +180,9 @@ class DashboardOverview extends StatelessWidget {
                           mainAxisSpacing: 12,
                           childAspectRatio: 1,
                         ),
-                    itemCount: metrics.length,
+                    itemCount: displayedMetrics.length,
                     itemBuilder: (context, index) {
-                      final metric = metrics[index];
+                      final metric = displayedMetrics[index];
                       return _MetricCard(
                         metric: metric,
                         onTap: () => _handleMetricTap(context, metric),
@@ -296,6 +298,53 @@ class DashboardOverview extends StatelessWidget {
     if (shouldLogout && context.mounted) {
       context.read<AuthBloc>().add(const LogoutRequested());
     }
+  }
+
+  List<DashboardMetricEntity> _staticFallbackMetrics() {
+    return const [
+      DashboardMetricEntity(
+        title: 'Analytics',
+        value: '85% Efficiency',
+        trend: 4.2,
+        icon: Icons.show_chart_rounded,
+        color: Colors.indigo,
+      ),
+      DashboardMetricEntity(
+        title: 'Sales',
+        value: '\$48.6K',
+        trend: 6.1,
+        icon: Icons.point_of_sale_rounded,
+        color: Colors.deepOrange,
+      ),
+      DashboardMetricEntity(
+        title: 'History',
+        value: '248 Orders',
+        trend: 2.4,
+        icon: Icons.history_rounded,
+        color: Colors.blueGrey,
+      ),
+      DashboardMetricEntity(
+        title: 'Purchase',
+        value: '\$12.4K',
+        trend: -1.3,
+        icon: Icons.shopping_cart_rounded,
+        color: Colors.teal,
+      ),
+      DashboardMetricEntity(
+        title: 'Income',
+        value: '\$32.1K',
+        trend: 3.7,
+        icon: Icons.account_balance_wallet_rounded,
+        color: Colors.green,
+      ),
+      DashboardMetricEntity(
+        title: 'Expenses',
+        value: '\$8.2K',
+        trend: 1.1,
+        icon: Icons.receipt_long_rounded,
+        color: Colors.red,
+      ),
+    ];
   }
 }
 

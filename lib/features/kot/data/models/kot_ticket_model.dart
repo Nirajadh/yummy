@@ -1,5 +1,3 @@
-import 'package:yummy/features/common/data/dummy_data.dart' as dummy;
-
 class KotTicketModel {
   String? id;
   String? type;
@@ -30,17 +28,6 @@ class KotTicketModel {
       items: items,
       time: (json['time'] as String?)?.trim(),
       status: (json['status'] as String?)?.trim() ?? 'Pending',
-    );
-  }
-
-  factory KotTicketModel.fromDummy(dummy.KotTicket ticket) {
-    return KotTicketModel(
-      id: ticket.id,
-      type: ticket.type,
-      reference: ticket.reference,
-      items: ticket.items,
-      time: ticket.time,
-      status: ticket.status,
     );
   }
 

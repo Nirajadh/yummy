@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/features/tables/domain/entities/table_entity.dart';
 import 'package:yummy/features/tables/presentation/bloc/tables/tables_bloc.dart';
-import 'package:yummy/features/tables/presentation/models/table_order_args.dart';
+import 'package:yummy/features/tables/presentation/navigation/table_order_args.dart';
 import 'package:yummy/features/tables/presentation/screens/widgets/legend_dot.dart';
 
 const _statusColorMap = <String, Color>{
@@ -29,8 +29,16 @@ class TablesScreen extends StatefulWidget {
 }
 
 class _TablesScreenState extends State<TablesScreen> {
-  void _openForm({TableEntity? table}) {
+  List<String> _cachedCategories = const [];
+
+  void _openForm({TableEntity? table, List<String>? availableCategories}) {
     final bloc = context.read<TablesBloc>();
+    final state = bloc.state;
+    final categories =
+        availableCategories ?? _allCategories(state, state.tables);
+    final selectedCategory = state.selectedCategory.isNotEmpty
+        ? state.selectedCategory
+        : (categories.isNotEmpty ? categories.first : 'General');
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -43,15 +51,11 @@ class _TablesScreenState extends State<TablesScreen> {
         ),
         child: TableFormSheet(
           table: table,
-          selectedCategory: context.read<TablesBloc>().state.selectedCategory,
+          selectedCategory: selectedCategory,
+          availableCategories: categories,
           onSave: (newTable) => bloc.add(TableSaved(newTable)),
           onDelete: table != null
-              ? () => bloc.add(
-                TableDeleted(
-                  table.name,
-                  tableId: table.id,
-                ),
-              )
+              ? () => bloc.add(TableDeleted(table.name, tableId: table.id))
               : null,
         ),
       ),
@@ -59,9 +63,7 @@ class _TablesScreenState extends State<TablesScreen> {
   }
 
   List<String> _allCategories(TablesState state, List<TableEntity> tables) {
-    final set = <String>{
-      ...(state.tableTypes ?? const []).map((t) => t.name),
-    };
+    final set = <String>{...(state.tableTypes ?? const []).map((t) => t.name)};
     for (final table in tables) {
       if (table.category.isNotEmpty) {
         set.add(table.category);
@@ -105,6 +107,7 @@ class _TablesScreenState extends State<TablesScreen> {
     );
 
     if (name != null && name.isNotEmpty) {
+      if (!mounted) return;
       context.read<TablesBloc>().add(TableCategoryAdded(name));
       context.read<TablesBloc>().add(TableCategorySelected(name));
     }
@@ -150,10 +153,11 @@ class _TablesScreenState extends State<TablesScreen> {
           }
           final tables = state.tables;
           final categories = _allCategories(state, tables);
+          _cachedCategories = categories;
           final selectedCategory =
               state.filterCategory.isNotEmpty && categories.isNotEmpty
-                  ? state.filterCategory
-                  : (categories.isNotEmpty ? categories.first : '');
+              ? state.filterCategory
+              : (categories.isNotEmpty ? categories.first : '');
           final filteredTables = selectedCategory.isEmpty
               ? tables
               : tables.where((t) => t.category == selectedCategory).toList();
@@ -206,9 +210,9 @@ class _TablesScreenState extends State<TablesScreen> {
                                       : null,
                                   fontWeight: FontWeight.w600,
                                 ),
-                            onSelected: (_) => context
-                                .read<TablesBloc>()
-                                .add(TableCategoryFilterChanged(category)),
+                            onSelected: (_) => context.read<TablesBloc>().add(
+                              TableCategoryFilterChanged(category),
+                            ),
                           ),
                         );
                       }),
@@ -275,23 +279,16 @@ class _TablesScreenState extends State<TablesScreen> {
                               color: Theme.of(context).cardColor,
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(16),
-                          onTap: () => Navigator.pushNamed(
-                            context,
-                            '/table-order',
-                            arguments: TableOrderArgs(
-                              tableId: table.id,
-                              tableName: table.name,
-                              status: table.status,
-                              capacity: table.capacity,
-                              category: table.category,
-                              notes: table.notes,
-                                    activeItems: table.activeItems,
-                                    pastOrders: table.pastOrders,
-                                    reservationName: table.reservationName,
-                                  ),
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  '/table-order',
+                                  arguments: TableOrderArgs(table: table),
                                 ),
                                 onLongPress: widget.allowManageTables
-                                    ? () => _openForm(table: table)
+                                    ? () => _openForm(
+                                          table: table,
+                                          availableCategories: categories,
+                                        )
                                     : null,
                                 child: Padding(
                                   padding: const EdgeInsets.all(14),
@@ -360,7 +357,11 @@ class _TablesScreenState extends State<TablesScreen> {
                                                 size: 20,
                                               ),
                                               onPressed: () =>
-                                                  _openForm(table: table),
+                                                  _openForm(
+                                                    table: table,
+                                                    availableCategories:
+                                                        categories,
+                                                  ),
                                             ),
                                         ],
                                       ),
@@ -421,7 +422,8 @@ class _TablesScreenState extends State<TablesScreen> {
       floatingActionButton: widget.allowManageTables
           ? FloatingActionButton.extended(
               heroTag: 'tables-fab',
-              onPressed: () => _openForm(),
+              onPressed: () =>
+                  _openForm(availableCategories: _cachedCategories),
               icon: const Icon(Icons.add),
               label: const Text('Add Table'),
             )
@@ -435,6 +437,7 @@ class TableFormSheet extends StatefulWidget {
   final ValueChanged<TableEntity> onSave;
   final VoidCallback? onDelete;
   final String selectedCategory;
+  final List<String> availableCategories;
 
   const TableFormSheet({
     super.key,
@@ -442,6 +445,7 @@ class TableFormSheet extends StatefulWidget {
     required this.onSave,
     this.onDelete,
     this.selectedCategory = '',
+    this.availableCategories = const [],
   });
 
   @override
@@ -452,6 +456,7 @@ class _TableFormSheetState extends State<TableFormSheet> {
   late final TextEditingController _nameController;
   late final TextEditingController _capacityController;
   late final TextEditingController _notesController;
+  late String _selectedCategory;
 
   @override
   void initState() {
@@ -461,6 +466,14 @@ class _TableFormSheetState extends State<TableFormSheet> {
       text: widget.table != null ? widget.table!.capacity.toString() : '',
     );
     _notesController = TextEditingController(text: widget.table?.notes ?? '');
+    final initialCategory = widget.table?.category ??
+        (widget.selectedCategory.isNotEmpty
+            ? widget.selectedCategory
+            : (widget.availableCategories.isNotEmpty
+                ? widget.availableCategories.first
+                : 'General'));
+    _selectedCategory =
+        initialCategory.isNotEmpty ? initialCategory : 'General';
   }
 
   @override
@@ -479,11 +492,7 @@ class _TableFormSheetState extends State<TableFormSheet> {
       );
       return;
     }
-    final category =
-        widget.table?.category ??
-        (widget.selectedCategory.isNotEmpty
-            ? widget.selectedCategory
-            : 'General');
+    final category = _selectedCategory.isNotEmpty ? _selectedCategory : 'General';
 
     final existing = widget.table;
     widget.onSave(
@@ -511,6 +520,12 @@ class _TableFormSheetState extends State<TableFormSheet> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.table != null;
+    final categoryOptions = {
+      if (_selectedCategory.isNotEmpty) _selectedCategory,
+      ...widget.availableCategories,
+      'General',
+    }.toList()
+      ..sort();
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -522,22 +537,26 @@ class _TableFormSheetState extends State<TableFormSheet> {
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              const Icon(Icons.store_mall_directory_outlined, size: 18),
-              const SizedBox(width: 6),
-              Text(
-                widget.table?.category ??
-                    (widget.selectedCategory.isNotEmpty
-                        ? widget.selectedCategory
-                        : 'General'),
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ],
+          DropdownButtonFormField<String>(
+            initialValue: _selectedCategory,
+            decoration: const InputDecoration(labelText: 'Category'),
+            items: categoryOptions
+                .map(
+                  (category) => DropdownMenuItem<String>(
+                    value: category,
+                    child: Text(category),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedCategory = value ?? 'General';
+              });
+            },
           ),
           const SizedBox(height: 4),
           Text(
-            'Category is taken from the current filter.',
+            'Choose the hall/floor for this table. Defaults to the active filter.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),

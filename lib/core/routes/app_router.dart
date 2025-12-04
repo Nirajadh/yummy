@@ -25,7 +25,9 @@ import 'package:yummy/features/admin/presentation/bloc/settings/settings_bloc.da
 import 'package:yummy/features/menu/presentation/screens/menu_item_form_screen.dart';
 import 'package:yummy/features/menu/presentation/screens/menu_management_screen.dart';
 import 'package:yummy/features/orders/domain/entities/bill_preview.dart';
-import 'package:yummy/features/orders/presentation/bloc/order_cart/order_cart_cubit.dart';
+import 'package:yummy/features/orders/presentation/bloc/order_cart/order_cart_bloc.dart';
+import 'package:yummy/features/orders/presentation/bloc/create_order/create_order_bloc.dart';
+import 'package:yummy/features/orders/presentation/bloc/add_order_items/add_order_items_bloc.dart';
 import 'package:yummy/features/orders/presentation/screens/bill_preview_screen.dart';
 import 'package:yummy/features/orders/presentation/screens/group_order_screen.dart';
 import 'package:yummy/features/orders/presentation/screens/order_history_screen.dart';
@@ -33,10 +35,11 @@ import 'package:yummy/features/orders/presentation/screens/order_screen.dart';
 import 'package:yummy/features/orders/presentation/screens/orders_screen.dart';
 import 'package:yummy/features/orders/presentation/screens/pickup_order_screen.dart';
 import 'package:yummy/features/orders/presentation/screens/quick_billing_screen.dart';
+import 'package:yummy/features/tables/presentation/bloc/table_order/table_order_bloc.dart';
 import 'package:yummy/features/staff/presentation/screens/staff_management_screen.dart';
 import 'package:yummy/features/staff_portal/presentation/screens/staff_dashboard_shell.dart';
-import 'package:yummy/features/tables/presentation/bloc/table_order/table_order_bloc.dart';
-import 'package:yummy/features/tables/presentation/models/tables_screen_args.dart';
+import 'package:yummy/features/tables/presentation/navigation/table_order_args.dart';
+import 'package:yummy/features/tables/presentation/navigation/tables_screen_args.dart';
 import 'package:yummy/features/tables/presentation/screens/table_order_screen.dart';
 import 'package:yummy/features/tables/presentation/screens/tables_screen.dart';
 
@@ -105,10 +108,18 @@ class AppRouter {
         );
       case '/table-order':
         return MaterialPageRoute(
-          builder: (_) => BlocProvider(
-            create: (_) => TableOrderBloc(),
-            child: const TableOrderScreen(),
-          ),
+          builder: (_) {
+            final args = settings.arguments;
+            return BlocProvider(
+              create: (_) => TableOrderBloc(
+                getActiveOrders: sl(),
+                restaurantDetailsService: sl(),
+              ),
+              child: TableOrderScreen(
+                args: args is TableOrderArgs ? args : null,
+              ),
+            );
+          },
         );
       case '/groups':
         return MaterialPageRoute(builder: (_) => const GroupsScreen());
@@ -122,8 +133,13 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const QuickBillingScreen());
       case '/order-screen':
         return MaterialPageRoute(
-          builder: (_) => BlocProvider(
-            create: (_) => OrderCartCubit(),
+          settings: settings,
+          builder: (_) => MultiBlocProvider(
+            providers: [
+              BlocProvider(create: (_) => OrderCartBloc()),
+              BlocProvider(create: (_) => sl<CreateOrderBloc>()),
+              BlocProvider(create: (_) => sl<AddOrderItemsBloc>()),
+            ],
             child: const OrderScreen(),
           ),
         );
@@ -186,23 +202,13 @@ class AppRouter {
       case '/reports':
         return MaterialPageRoute(builder: (_) => const ReportsScreen());
       case '/settings':
-        return MaterialPageRoute(
-          builder: (_) => BlocProvider(
-            create: (_) => sl<SettingsBloc>(),
-            child: const SettingsScreen(),
-          ),
-        );
+        return MaterialPageRoute(builder: (_) => const SettingsScreen());
 
       case '/staff-management':
         return MaterialPageRoute(builder: (_) => const StaffManagementScreen());
       case '/admin-more':
         // Legacy route: redirect to settings with bloc.
-        return MaterialPageRoute(
-          builder: (_) => BlocProvider(
-            create: (_) => sl<SettingsBloc>(),
-            child: const SettingsScreen(),
-          ),
-        );
+        return MaterialPageRoute(builder: (_) => const SettingsScreen());
       default:
         return MaterialPageRoute(builder: (_) => const AuthScreen());
     }

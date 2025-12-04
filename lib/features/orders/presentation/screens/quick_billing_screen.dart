@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'order_screen.dart';
+import 'package:yummy/features/orders/domain/entities/order_enums.dart';
 
 class QuickBillingScreen extends StatelessWidget {
   const QuickBillingScreen({super.key});
@@ -31,7 +32,10 @@ class QuickBillingScreen extends StatelessWidget {
                 onPressed: () => Navigator.pushNamed(
                   context,
                   '/order-screen',
-                  arguments: const OrderScreenArgs(contextLabel: 'Quick Bill'),
+                  arguments: const OrderScreenArgs(
+                    contextLabel: 'Quick Bill',
+                    channel: OrderChannel.quickBilling,
+                  ),
                 ),
                 child: const Text('Start Quick Billing'),
               ),

@@ -10,9 +10,9 @@ class AppTheme {
     scaffoldBackgroundColor: AppColors.background,
     textTheme: GoogleFonts.poppinsTextTheme(),
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.primary,
-      foregroundColor: Colors.white,
-      elevation: 2,
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+      elevation: 5,
     ),
     cardColor: AppColors.cardLight,
     elevatedButtonTheme: ElevatedButtonThemeData(
@@ -39,7 +39,7 @@ class AppTheme {
     appBarTheme: const AppBarTheme(
       backgroundColor: Color(0xFF14161C),
       foregroundColor: Colors.white,
-      elevation: 0,
+      elevation: 5,
     ),
     cardColor: const Color(0xFF1B1D24),
     elevatedButtonTheme: ElevatedButtonThemeData(

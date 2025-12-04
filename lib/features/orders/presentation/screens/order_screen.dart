@@ -4,12 +4,39 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/features/menu/domain/entities/menu_item_entity.dart';
 import 'package:yummy/features/menu/presentation/bloc/menu/menu_bloc.dart';
 import 'package:yummy/features/orders/domain/entities/bill_preview.dart';
-import 'package:yummy/features/orders/presentation/bloc/order_cart/order_cart_cubit.dart';
+import 'package:yummy/features/orders/domain/entities/order_enums.dart';
+import 'package:yummy/features/orders/domain/entities/order_inputs.dart';
+import 'package:yummy/features/orders/domain/entities/order_item_entity.dart';
+import 'package:yummy/features/orders/presentation/bloc/add_order_items/add_order_items_bloc.dart';
+import 'package:yummy/features/orders/presentation/bloc/create_order/create_order_bloc.dart';
+import 'package:yummy/features/orders/presentation/bloc/order_cart/order_cart_bloc.dart';
 
 class OrderScreenArgs {
   final String contextLabel;
+  final OrderChannel channel;
+  final int? tableId;
+  final int? groupId;
+  final String? customerName;
+  final String? customerPhone;
+  final String? notes;
+  final String? existingOrderId;
+  final String? existingOrderReference;
+  final bool appendToExisting;
+  final List<OrderItemEntity>? existingOrderItems;
 
-  const OrderScreenArgs({this.contextLabel = 'Menu'});
+  const OrderScreenArgs({
+    this.contextLabel = 'Menu',
+    this.channel = OrderChannel.quickBilling,
+    this.tableId,
+    this.groupId,
+    this.customerName,
+    this.customerPhone,
+    this.notes,
+    this.existingOrderId,
+    this.existingOrderReference,
+    this.appendToExisting = false,
+    this.existingOrderItems,
+  });
 }
 
 Widget _placeholderIcon() {
@@ -55,6 +82,13 @@ class _OrderScreenState extends State<OrderScreen> {
       _loadedArgs = true;
     }
   }
+
+  OrderChannel get _channel => _args.channel;
+
+  bool get _isAppendMode =>
+      _args.appendToExisting && (_args.existingOrderId?.isNotEmpty ?? false);
+
+  int? get _existingOrderId => int.tryParse(_args.existingOrderId ?? '');
 
   List<MenuItemEntity> _filteredMenu(
     List<MenuItemEntity> source,
@@ -119,10 +153,120 @@ class _OrderScreenState extends State<OrderScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(action)));
   }
 
+  List<OrderItemInput> _toOrderItems(OrderCartState cartState) {
+    final missingIds = cartState.items.values
+        .where((item) => item.item.id == null)
+        .map((item) => item.item.name)
+        .toList();
+    if (missingIds.isNotEmpty) {
+      throw StateError(
+        'Cannot create order: missing menu IDs for ${missingIds.join(', ')}',
+      );
+    }
+    return cartState.items.values
+        .map(
+          (entry) => OrderItemInput(
+            menuItemId: entry.item.id!,
+            qty: entry.quantity,
+            notes: entry.item.description.isNotEmpty
+                ? entry.item.description
+                : null,
+          ),
+        )
+        .toList();
+  }
+
+  List<OrderItemInput> _mergeWithExisting({
+    required List<OrderItemEntity> existingItems,
+    required List<OrderItemInput> newItems,
+  }) {
+    final Map<int, OrderItemInput> merged = {};
+
+    for (final item in existingItems) {
+      final menuId = item.menuItemId;
+      if (menuId == null) {
+        throw StateError('Existing order item is missing menu item id.');
+      }
+      merged[menuId] = OrderItemInput(
+        menuItemId: menuId,
+        qty: item.qty,
+        notes: item.notes,
+      );
+    }
+
+    for (final item in newItems) {
+      final current = merged[item.menuItemId];
+      if (current != null) {
+        merged[item.menuItemId] = OrderItemInput(
+          menuItemId: item.menuItemId,
+          qty: current.qty + item.qty,
+          notes: current.notes ?? item.notes,
+        );
+      } else {
+        merged[item.menuItemId] = item;
+      }
+    }
+
+    return merged.values.toList();
+  }
+
+  void _submitOrder(OrderCartState cartState) {
+    if (!cartState.hasItems) {
+      _showAction('Add items before placing the order');
+      return;
+    }
+    try {
+      final items = _toOrderItems(cartState);
+
+      if (_isAppendMode) {
+        final orderId = _existingOrderId;
+        if (orderId == null) {
+          _showAction('Order ID missing for existing order');
+          return;
+        }
+        final existingItems = _args.existingOrderItems ?? const [];
+        late final List<OrderItemInput> merged;
+        try {
+          merged = _mergeWithExisting(
+            existingItems: existingItems,
+            newItems: items,
+          );
+        } on StateError catch (e) {
+          _showAction(e.message);
+          return;
+        }
+        context.read<AddOrderItemsBloc>().add(
+              AddOrderItemsSubmitted(orderId: orderId, items: merged),
+            );
+        return;
+      }
+
+      if (_channel == OrderChannel.table && (_args.tableId == null)) {
+        _showAction('Table ID missing for table order');
+        return;
+      }
+      context.read<CreateOrderBloc>().add(
+            CreateOrderSubmitted(
+              channel: _channel,
+              tableId: _args.tableId,
+              groupId: _args.groupId,
+              customerName: _args.customerName,
+              customerPhone: _args.customerPhone,
+              notes: _args.notes,
+              items: items,
+            ),
+          );
+    } on StateError catch (e) {
+      _showAction(e.message);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final menuState = context.watch<MenuBloc>().state;
-    final cartState = context.watch<OrderCartCubit>().state;
+    final cartState = context.watch<OrderCartBloc>().state;
+    final createOrderState = context.watch<CreateOrderBloc>().state;
+    final addOrderItemsState = context.watch<AddOrderItemsBloc>().state;
     Theme.of(context);
 
     if (menuState.status == MenuStatus.loading) {
@@ -141,134 +285,190 @@ class _OrderScreenState extends State<OrderScreen> {
     );
     final total = cartState.subtotal;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        final cartState = context.read<OrderCartCubit>().state;
-        Navigator.pop(
-          context,
-          OrderScreenResult(
-            sentToKitchen: cartState.sentToKitchen,
-            subtotal: cartState.subtotal,
-            items: _billLinesFromCart(cartState),
-          ),
-        );
-      },
-      child: Scaffold(
-        appBar: AppBar(title: Text(_args.contextLabel)),
-        body: Stack(
-          children: [
-            Column(
-              children: [
-                SizedBox(
-                  height: 60,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    scrollDirection: Axis.horizontal,
-                    itemBuilder: (context, index) {
-                      final category = categories[index];
-                      final selected = cartState.selectedCategory == category;
-                      return ChoiceChip(
-                        label: Text(category),
-                        selected: selected,
-                        onSelected: (_) => context
-                            .read<OrderCartCubit>()
-                            .selectCategory(category),
-                      );
-                    },
-                    separatorBuilder: (_, __) => const SizedBox(width: 12),
-                    itemCount: categories.length,
-                  ),
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<CreateOrderBloc, CreateOrderState>(
+          listenWhen: (previous, current) =>
+              previous.status != current.status ||
+              previous.message != current.message,
+          listener: (context, state) {
+            if (state.status == CreateOrderStatus.failure &&
+                (state.message ?? '').isNotEmpty) {
+              _showAction(state.message!);
+            }
+            if (state.status == CreateOrderStatus.success) {
+              _showAction(state.message ?? 'Order created');
+              final cart = context.read<OrderCartBloc>().state;
+              Navigator.pop(
+                context,
+                OrderScreenResult(
+                  sentToKitchen: true,
+                  subtotal: cart.subtotal,
+                  items: _billLinesFromCart(cart),
                 ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: filteredMenu.isEmpty
-                        ? const Center(child: Text('No menu items available.'))
-                        : GridView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: 0.9,
-                                ),
-                            itemCount: filteredMenu.length,
-                            itemBuilder: (context, index) {
-                              final theme = Theme.of(context);
-                              final item = filteredMenu[index];
-                              return Card(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          child: item.imageUrl.isNotEmpty
-                                              ? Image.network(
-                                                  item.imageUrl,
-                                                  fit: BoxFit.cover,
-                                                  width: double.infinity,
-                                                  errorBuilder: (_, __, ___) =>
-                                                      _placeholderIcon(),
-                                                )
-                                              : _placeholderIcon(),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        item.name,
-                                        style: theme.textTheme.titleMedium
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                      ),
-                                      Text(
-                                        '\$${item.price.toStringAsFixed(2)}',
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: theme
-                                                  .textTheme
-                                                  .bodySmall
-                                                  ?.color
-                                                  ?.withValues(alpha: 0.7),
-                                            ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: FilledButton.tonal(
-                                          onPressed: () => context
-                                              .read<OrderCartCubit>()
-                                              .addItem(item),
-                                          child: const Text('+ Add'),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                  ),
+              );
+            }
+          },
+        ),
+        BlocListener<AddOrderItemsBloc, AddOrderItemsState>(
+          listenWhen: (previous, current) =>
+              previous.status != current.status ||
+              previous.message != current.message,
+          listener: (context, state) {
+            if (state.status == AddOrderItemsStatus.failure &&
+                (state.message ?? '').isNotEmpty) {
+              _showAction(state.message!);
+            }
+            if (state.status == AddOrderItemsStatus.success) {
+              _showAction(state.message ?? 'Items added to order');
+              final cart = context.read<OrderCartBloc>().state;
+              Navigator.pop(
+                context,
+                OrderScreenResult(
+                  sentToKitchen: true,
+                  subtotal: cart.subtotal,
+                  items: _billLinesFromCart(cart),
                 ),
-              ],
+              );
+            }
+          },
+        ),
+      ],
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          final cartState = context.read<OrderCartBloc>().state;
+          Navigator.pop(
+            context,
+            OrderScreenResult(
+              sentToKitchen: cartState.sentToKitchen,
+              subtotal: cartState.subtotal,
+              items: _billLinesFromCart(cartState),
             ),
-            _buildCartSheet(total: total, cartState: cartState),
-          ],
+          );
+        },
+        child: Scaffold(
+          appBar: AppBar(title: Text(_args.contextLabel)),
+          body: Stack(
+            children: [
+              Column(
+                children: [
+                  SizedBox(
+                    height: 60,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      scrollDirection: Axis.horizontal,
+                      itemBuilder: (context, index) {
+                        final category = categories[index];
+                            final selected = cartState.selectedCategory == category;
+                            return ChoiceChip(
+                          label: Text(category),
+                          selected: selected,
+                          onSelected: (_) => context
+                              .read<OrderCartBloc>()
+                              .add(OrderCartCategorySelected(category)),
+                        );
+                      },
+                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      itemCount: categories.length,
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: filteredMenu.isEmpty
+                          ? const Center(child: Text('No menu items available.'))
+                          : GridView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                    childAspectRatio: 0.9,
+                                  ),
+                              itemCount: filteredMenu.length,
+                              itemBuilder: (context, index) {
+                                final theme = Theme.of(context);
+                                final item = filteredMenu[index];
+                                return Card(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            child: item.imageUrl.isNotEmpty
+                                                ? Image.network(
+                                                    item.imageUrl,
+                                                    fit: BoxFit.cover,
+                                                    width: double.infinity,
+                                                    errorBuilder: (_, __, ___) =>
+                                                        _placeholderIcon(),
+                                                  )
+                                                : _placeholderIcon(),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          item.name,
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                        Text(
+                                          '\$${item.price.toStringAsFixed(2)}',
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: theme
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.color
+                                                    ?.withValues(alpha: 0.7),
+                                              ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: FilledButton.tonal(
+                                            onPressed: () => context
+                                                .read<OrderCartBloc>()
+                                                .add(OrderCartItemAdded(item)),
+                                            child: const Text('+ Add'),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+              _buildCartSheet(
+                total: total,
+                cartState: cartState,
+                createOrderState: createOrderState,
+                addOrderItemsState: addOrderItemsState,
+                isAppendMode: _isAppendMode,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -277,9 +477,15 @@ class _OrderScreenState extends State<OrderScreen> {
   Widget _buildCartSheet({
     required double total,
     required OrderCartState cartState,
+    required CreateOrderState createOrderState,
+    required AddOrderItemsState addOrderItemsState,
+    required bool isAppendMode,
   }) {
     final entries = cartState.items.entries.toList();
     final hasItems = entries.isNotEmpty;
+    final isSubmitting = isAppendMode
+        ? addOrderItemsState.status == AddOrderItemsStatus.submitting
+        : createOrderState.status == CreateOrderStatus.submitting;
     final itemCount = entries.length;
 
     double minSize = hasItems ? 0.18 : 0.10;
@@ -307,7 +513,7 @@ class _OrderScreenState extends State<OrderScreen> {
                 : Colors.black87);
         final subtle = textColor.withValues(alpha: 0.65);
         final currentEntries = context.select(
-          (OrderCartCubit cubit) => cubit.state.items.entries.toList(),
+          (OrderCartBloc bloc) => bloc.state.items.entries.toList(),
         );
         final currentHasItems = currentEntries.isNotEmpty;
         final accent = colorScheme.primary;
@@ -454,8 +660,13 @@ class _OrderScreenState extends State<OrderScreen> {
                                       Icons.remove_circle_outline,
                                     ),
                                     onPressed: () => context
-                                        .read<OrderCartCubit>()
-                                        .changeQuantity(item.item.name, -1),
+                                        .read<OrderCartBloc>()
+                                        .add(
+                                          OrderCartQuantityChanged(
+                                            item.item.name,
+                                            -1,
+                                          ),
+                                        ),
                                   ),
                                   Text(
                                     '${item.quantity}',
@@ -464,8 +675,13 @@ class _OrderScreenState extends State<OrderScreen> {
                                   IconButton(
                                     icon: const Icon(Icons.add_circle_outline),
                                     onPressed: () => context
-                                        .read<OrderCartCubit>()
-                                        .changeQuantity(item.item.name, 1),
+                                        .read<OrderCartBloc>()
+                                        .add(
+                                          OrderCartQuantityChanged(
+                                            item.item.name,
+                                            1,
+                                          ),
+                                        ),
                                   ),
                                 ],
                               ),
@@ -531,59 +747,26 @@ class _OrderScreenState extends State<OrderScreen> {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _ActionCardButton(
-                                    icon: Icons.local_fire_department_outlined,
-                                    title: 'Send to Kitchen',
-                                    subtitle: 'Push order to the line',
-                                    gradient: [
-                                      accent.withValues(alpha: 0.95),
-                                      accent,
-                                    ],
-                                    onTap: hasItems
-                                        ? () {
-                                            context
-                                                .read<OrderCartCubit>()
-                                                .markSentToKitchen();
-                                            _showAction('Sent to kitchen');
-                                          }
-                                        : null,
-                                  ),
-                                ),
-
-                                // Expanded(
-                                //   child: _ActionCardButton(
-                                //     icon: Icons.arrow_forward_rounded,
-                                //     title: 'Proceed to Checkout',
-                                //     subtitle: 'Review bill & payments',
-                                //     gradient: [
-                                //       colorScheme.secondary.withValues(
-                                //         alpha: 0.95,
-                                //       ),
-                                //       colorScheme.secondary,
-                                //     ],
-                                //     onTap: hasItems
-                                //         ? () {
-                                //             if (!cartState.sentToKitchen) {
-                                //               _showAction(
-                                //                 'Send to kitchen before checkout',
-                                //               );
-                                //               return;
-                                //             }
-                                //             Navigator.pushNamed(
-                                //               context,
-                                //               '/bill-preview',
-                                //               arguments: _buildBillPreviewArgs(
-                                //                 cartState,
-                                //               ),
-                                //             );
-                                //           }
-                                //         : null,
-                                //   ),
-                                // ),
+                            SizedBox(
+                            width: double.infinity,
+                            child: _ActionCardButton(
+                              icon: Icons.local_fire_department_outlined,
+                              title: isSubmitting
+                                  ? (isAppendMode ? 'Adding...' : 'Sending...')
+                                  : (isAppendMode
+                                      ? 'Add Items to Order'
+                                      : 'Send to Kitchen'),
+                              subtitle: isAppendMode
+                                  ? 'Append items to the active order'
+                                  : 'Create order and push to the line',
+                              gradient: [
+                                accent.withValues(alpha: 0.95),
+                                accent,
                               ],
+                                onTap: hasItems && !isSubmitting
+                                    ? () => _submitOrder(cartState)
+                                    : null,
+                              ),
                             ),
                           ],
                         ),

@@ -1,5 +1,3 @@
-import 'package:yummy/features/common/data/dummy_data.dart' as dummy;
-
 class TableModel {
   int? id;
   String? name;
@@ -37,21 +35,6 @@ class TableModel {
       reservationName: (json['reservationName'] as String?)?.trim(),
       category: (json['category'] as String?)?.trim(),
       tableTypeId: _parseInt(json['table_type_id']),
-    );
-  }
-
-  factory TableModel.fromDummy(dummy.TableInfo table) {
-    return TableModel(
-      id: table.id,
-      name: table.name,
-      capacity: table.capacity,
-      status: table.status,
-      notes: table.notes,
-      activeItems: table.activeItems,
-      pastOrders: table.pastOrders,
-      reservationName: table.reservationName,
-      category: table.category,
-      tableTypeId: table.tableTypeId,
     );
   }
 

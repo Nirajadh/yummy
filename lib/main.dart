@@ -13,6 +13,7 @@ import 'package:yummy/features/kitchen/presentation/bloc/kitchen_kot/kitchen_kot
 import 'package:yummy/features/menu/presentation/bloc/menu/menu_bloc.dart';
 import 'package:yummy/features/orders/presentation/bloc/orders/orders_bloc.dart';
 import 'package:yummy/features/staff_portal/presentation/bloc/staff_dashboard/staff_dashboard_bloc.dart';
+import 'package:yummy/features/admin/presentation/bloc/settings/settings_bloc.dart';
 import 'package:yummy/features/tables/presentation/bloc/tables/tables_bloc.dart';
 
 Future<void> main() async {
@@ -102,6 +103,9 @@ class _AppScopeState extends State<_AppScope> {
       key: ValueKey('session-${widget.sessionKey}'),
       providers: [
         BlocProvider(
+          create: (_) => sl<SettingsBloc>(),
+        ),
+        BlocProvider(
           create: (_) =>
               sl<AdminDashboardBloc>()..add(const AdminDashboardStarted()),
         ),
@@ -121,15 +125,19 @@ class _AppScopeState extends State<_AppScope> {
           create: (_) => sl<KitchenKotBloc>()..add(const KitchenKotRequested()),
         ),
       ],
-      child: MaterialApp(
-        navigatorKey: widget.navigatorKey,
-        title: 'Yummy',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        initialRoute: '/',
-        onGenerateRoute: AppRouter.onGenerateRoute,
+      child: BlocBuilder<SettingsBloc, SettingsState>(
+        builder: (context, settingsState) {
+          return MaterialApp(
+            navigatorKey: widget.navigatorKey,
+            title: 'Yummy',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: settingsState.appearance,
+            initialRoute: '/',
+            onGenerateRoute: AppRouter.onGenerateRoute,
+          );
+        },
       ),
     );
   }

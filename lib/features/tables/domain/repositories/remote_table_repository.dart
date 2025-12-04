@@ -24,4 +24,6 @@ abstract interface class RemoteTableRepository {
   });
 
   Future<Either<Failure, void>> deleteTable({required int tableId});
+
+  Future<Either<Failure, TableEntity>> getTableById({required int tableId});
 }

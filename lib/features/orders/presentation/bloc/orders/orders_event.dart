@@ -8,5 +8,9 @@ sealed class OrdersEvent extends Equatable {
 }
 
 class OrdersRequested extends OrdersEvent {
-  const OrdersRequested();
+  final String? filter;
+  const OrdersRequested({this.filter});
+
+  @override
+  List<Object?> get props => [filter];
 }

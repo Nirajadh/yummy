@@ -4,6 +4,7 @@ import 'package:yummy/features/groups/domain/entities/group_entity.dart';
 import 'package:yummy/features/groups/domain/entities/group_person_entity.dart';
 import 'package:yummy/features/orders/domain/entities/bill_preview.dart';
 import 'package:yummy/features/orders/domain/entities/order_history_entry_entity.dart';
+import 'package:yummy/features/orders/domain/entities/order_enums.dart';
 import 'group_order/cart_sheet.dart';
 import 'group_order/models.dart';
 import 'group_order/order_group_sheet.dart';
@@ -374,7 +375,10 @@ class _GroupOrderScreenState extends State<GroupOrderScreen> {
     final result = await Navigator.pushNamed(
       context,
       '/order-screen',
-      arguments: OrderScreenArgs(contextLabel: 'Group: ${_args.groupName}'),
+      arguments: OrderScreenArgs(
+        contextLabel: 'Group: ${_args.groupName}',
+        channel: OrderChannel.group,
+      ),
     );
 
     if (!mounted) return;

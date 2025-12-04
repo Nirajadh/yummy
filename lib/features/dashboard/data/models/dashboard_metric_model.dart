@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:yummy/features/common/data/dummy_data.dart' as dummy;
 
 class DashboardMetricModel {
   String? title;
@@ -27,16 +26,6 @@ class DashboardMetricModel {
       trend: trend,
       iconCodePoint: iconCode ?? Icons.help_outline.codePoint,
       colorValue: color ?? Colors.grey.toARGB32(),
-    );
-  }
-
-  factory DashboardMetricModel.fromDummy(dummy.DashboardMetric metric) {
-    return DashboardMetricModel(
-      title: metric.title,
-      value: metric.value,
-      trend: metric.trend,
-      iconCodePoint: metric.icon.codePoint,
-      colorValue: metric.color.toARGB32(),
     );
   }
 

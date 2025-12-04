@@ -102,4 +102,22 @@ class RemoteTableRepositoryImpl implements RemoteTableRepository {
       return Left(Failure('An unexpected error occurred: $e'));
     }
   }
+
+  @override
+  Future<Either<Failure, TableEntity>> getTableById({
+    required int tableId,
+  }) async {
+    try {
+      final model = await remote.getTableById(tableId: tableId);
+      return Right(RestaurantTableMapper.toEntity(model));
+    } on ServerException catch (e) {
+      return Left(Failure(e.message));
+    } on NetworkException catch (e) {
+      return Left(Failure(e.message));
+    } on DataParsingException catch (e) {
+      return Left(Failure(e.message));
+    } catch (e) {
+      return Left(Failure('An unexpected error occurred: $e'));
+    }
+  }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yummy/features/orders/domain/entities/order_enums.dart';
 
 import 'order_screen.dart';
 
@@ -28,7 +29,12 @@ class _PickupOrderScreenState extends State<PickupOrderScreen> {
     Navigator.pushNamed(
       context,
       '/order-screen',
-      arguments: OrderScreenArgs(contextLabel: 'Pickup: ${_nameController.text}'),
+      arguments: OrderScreenArgs(
+        contextLabel: 'Pickup: ${_nameController.text}',
+        channel: OrderChannel.pickup,
+        customerName: _nameController.text,
+        customerPhone: _phoneController.text,
+      ),
     );
   }
 

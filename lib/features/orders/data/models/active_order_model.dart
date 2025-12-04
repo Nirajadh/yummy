@@ -1,9 +1,10 @@
-import 'package:yummy/features/common/data/dummy_data.dart' as dummy;
+import 'package:yummy/features/orders/data/models/order_model.dart';
 
 class ActiveOrderModel {
   String? id;
   String? type;
   String? reference;
+  String? tableName;
   double? amount;
   int? itemsCount;
   int? guests;
@@ -11,11 +12,14 @@ class ActiveOrderModel {
   String? status;
   String? channel;
   String? contact;
+  int? tableId;
+  List<OrderItemModel> items;
 
   ActiveOrderModel({
     this.id,
     this.type,
     this.reference,
+    this.tableName,
     this.amount,
     this.itemsCount,
     this.guests,
@@ -23,6 +27,8 @@ class ActiveOrderModel {
     this.status,
     this.channel,
     this.contact,
+    this.tableId,
+    this.items = const [],
   });
 
   factory ActiveOrderModel.fromJson(Map<String, dynamic> json) {
@@ -31,10 +37,17 @@ class ActiveOrderModel {
         ? rawAmount.toDouble()
         : double.tryParse(rawAmount?.toString() ?? '');
 
+    int? parseInt(dynamic value) {
+      if (value == null) return null;
+      if (value is num) return value.toInt();
+      return int.tryParse(value.toString());
+    }
+
     return ActiveOrderModel(
       id: (json['id'] as String?)?.trim(),
       type: (json['type'] as String?)?.trim(),
       reference: (json['reference'] as String?)?.trim(),
+      tableName: (json['table_name'] as String?)?.trim(),
       amount: amount,
       itemsCount: _parseInt(json['itemsCount']),
       guests: _parseInt(json['guests']),
@@ -42,21 +55,12 @@ class ActiveOrderModel {
       status: (json['status'] as String?)?.trim(),
       channel: (json['channel'] as String?)?.trim(),
       contact: (json['contact'] as String?)?.trim(),
-    );
-  }
-
-  factory ActiveOrderModel.fromDummy(dummy.ActiveOrder order) {
-    return ActiveOrderModel(
-      id: order.id,
-      type: order.type,
-      reference: order.reference,
-      amount: order.amount,
-      itemsCount: order.itemsCount,
-      guests: order.guests,
-      startedAt: order.startedAt,
-      status: order.status,
-      channel: order.channel,
-      contact: order.contact,
+      tableId: parseInt(json['table_id']),
+      items: (json['items'] as List<dynamic>?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(OrderItemModel.fromJson)
+              .toList() ??
+          const [],
     );
   }
 
@@ -65,6 +69,7 @@ class ActiveOrderModel {
       'id': id,
       'type': type,
       'reference': reference,
+      'table_name': tableName,
       'amount': amount,
       'itemsCount': itemsCount,
       'guests': guests,
@@ -72,6 +77,7 @@ class ActiveOrderModel {
       'status': status,
       'channel': channel,
       'contact': contact,
+      'items': items.map((e) => e.toJson()).toList(),
     };
   }
 

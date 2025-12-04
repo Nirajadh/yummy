@@ -1,5 +1,3 @@
-import 'package:yummy/features/common/data/dummy_data.dart' as dummy;
-
 class OrderHistoryEntryModel {
   String? id;
   String? type;
@@ -27,16 +25,6 @@ class OrderHistoryEntryModel {
       amount: amount,
       status: (json['status'] as String?)?.trim(),
       timestamp: (json['timestamp'] as String?)?.trim(),
-    );
-  }
-
-  factory OrderHistoryEntryModel.fromDummy(dummy.OrderHistoryEntry entry) {
-    return OrderHistoryEntryModel(
-      id: entry.id,
-      type: entry.type,
-      amount: entry.amount,
-      status: entry.status,
-      timestamp: entry.timestamp,
     );
   }
 

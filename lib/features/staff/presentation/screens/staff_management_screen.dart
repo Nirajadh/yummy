@@ -117,35 +117,14 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: dummyStaffRecords.length,
-              separatorBuilder: (_, __) => const Divider(height: 0),
-              itemBuilder: (context, index) {
-                final record = dummyStaffRecords[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.teal.withValues(alpha: .12),
-                    child: const Icon(
-                      Icons.receipt_long_outlined,
-                      color: Colors.teal,
-                    ),
-                  ),
-                  title: Text('${record.type} • ${record.staffName}'),
-                  subtitle: Text('${record.date}\n${record.note}'),
-                  isThreeLine: true,
-                  trailing: Text(
-                    _currency(record.amount),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                );
-              },
+            child: const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('No staff records available.'),
             ),
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: () => _showSnack(context, 'Opened staff records'),
+            onPressed: () => _showSnack(context, 'No records to view'),
             icon: const Icon(Icons.folder_shared_outlined),
             label: const Text('View All Records'),
           ),
@@ -205,7 +184,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
           if (!mounted) return;
           setState(() {
             _error = failure.message;
-            _staffMembers = List.of(dummyStaffMembers);
+            _staffMembers = const [];
           });
         },
         (users) {
@@ -219,7 +198,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
       if (!mounted) return;
       setState(() {
         _error = e.toString();
-        _staffMembers = List.of(dummyStaffMembers);
+        _staffMembers = const [];
       });
     } finally {
       if (mounted) {

@@ -1,111 +1,79 @@
-import 'package:yummy/features/common/data/datasources/local_dummy_data_source.dart';
+import 'package:yummy/features/common/data/dummy_data.dart' as dummy;
 import 'package:yummy/features/common/domain/repositories/restaurant_repository.dart';
 import 'package:yummy/features/dashboard/domain/entities/dashboard_snapshot.dart';
-import 'package:yummy/features/dashboard/mapper/dashboard_mapper.dart';
 import 'package:yummy/features/finance/domain/entities/income_entry_entity.dart';
 import 'package:yummy/features/finance/domain/entities/purchase_entry_entity.dart';
-import 'package:yummy/features/finance/mapper/finance_mapper.dart';
+import 'package:yummy/features/groups/data/models/group_model.dart';
 import 'package:yummy/features/groups/domain/entities/group_entity.dart';
 import 'package:yummy/features/groups/mapper/group_mapper.dart';
 import 'package:yummy/features/kot/domain/entities/kot_ticket_entity.dart';
-import 'package:yummy/features/kot/mapper/kot_ticket_mapper.dart';
 import 'package:yummy/features/orders/domain/entities/active_order_entity.dart';
 import 'package:yummy/features/orders/domain/entities/order_history_entry_entity.dart';
-import 'package:yummy/features/orders/mapper/order_mapper.dart';
 import 'package:yummy/features/staff/domain/entities/staff_member_entity.dart';
 import 'package:yummy/features/staff/domain/entities/staff_record_entity.dart';
-import 'package:yummy/features/staff/mapper/staff_mapper.dart';
 import 'package:yummy/features/tables/domain/entities/table_entity.dart';
-import 'package:yummy/features/tables/mapper/table_mapper.dart';
 
+/// Minimal stub repository: only dummy group data is kept, everything else empty.
 class RestaurantRepositoryImpl implements RestaurantRepository {
-  final LocalDummyDataSource local;
-
-  RestaurantRepositoryImpl({required this.local});
+  RestaurantRepositoryImpl();
 
   @override
-  Future<List<TableEntity>> getTables() async {
-    return local.getTables().map(TableMapper.toEntity).toList();
-  }
+  Future<List<TableEntity>> getTables() async => const <TableEntity>[];
 
   @override
-  Future<void> upsertTable(TableEntity table) async {
-    final dto = TableMapper.fromEntity(table);
-    local.upsertTable(dto);
-  }
+  Future<void> upsertTable(TableEntity table) async {}
 
   @override
-  Future<void> deleteTable(String tableName) async {
-    local.deleteTable(tableName);
-  }
+  Future<void> deleteTable(String tableName) async {}
 
   @override
   Future<List<GroupEntity>> getGroups() async {
-    return local.getGroups().map(GroupMapper.toEntity).toList();
+    return dummy.dummyGroups
+        .map(GroupModel.fromDummy)
+        .map(GroupMapper.toEntity)
+        .toList();
   }
 
   @override
-  Future<void> upsertGroup(GroupEntity group) async {
-    final dto = GroupMapper.fromEntity(group);
-    local.upsertGroup(dto);
-  }
+  Future<void> upsertGroup(GroupEntity group) async {}
 
   @override
-  Future<void> toggleGroupStatus(String groupName) async {
-    local.toggleGroupStatus(groupName);
-  }
+  Future<void> toggleGroupStatus(String groupName) async {}
 
   @override
-  Future<DashboardSnapshot> getDashboardSnapshot() async {
-    return DashboardSnapshot(
-      metrics: local
-          .getDashboardMetrics()
-          .map(DashboardMapper.toEntity)
-          .toList(),
-      activeOrders: local
-          .getActiveOrders()
-          .map(OrderMapper.toActiveEntity)
-          .toList(),
-      orderHistory: local
-          .getOrderHistory()
-          .map(OrderMapper.toHistoryEntity)
-          .toList(),
-      expenses: local.getExpenses().map(FinanceMapper.toExpenseEntity).toList(),
-    );
-  }
+  Future<DashboardSnapshot> getDashboardSnapshot() async =>
+      const DashboardSnapshot(
+        metrics: [],
+        orderHistory: [],
+        expenses: [],
+        activeOrders: [],
+      );
 
   @override
-  Future<List<ActiveOrderEntity>> getActiveOrders() async {
-    return local.getActiveOrders().map(OrderMapper.toActiveEntity).toList();
-  }
+  Future<List<ActiveOrderEntity>> getActiveOrders() async =>
+      const <ActiveOrderEntity>[];
 
   @override
-  Future<List<OrderHistoryEntryEntity>> getOrderHistory() async {
-    return local.getOrderHistory().map(OrderMapper.toHistoryEntity).toList();
-  }
+  Future<List<OrderHistoryEntryEntity>> getOrderHistory() async =>
+      const <OrderHistoryEntryEntity>[];
 
   @override
-  Future<List<KotTicketEntity>> getKotTickets() async {
-    return local.getKotTickets().map(KotTicketMapper.toEntity).toList();
-  }
+  Future<List<KotTicketEntity>> getKotTickets() async =>
+      const <KotTicketEntity>[];
 
   @override
-  Future<List<StaffMemberEntity>> getStaffMembers() async {
-    return local.getStaffMembers().map(StaffMapper.toMemberEntity).toList();
-  }
+  Future<List<StaffMemberEntity>> getStaffMembers() async =>
+      const <StaffMemberEntity>[];
 
   @override
-  Future<List<StaffRecordEntity>> getStaffRecords() async {
-    return local.getStaffRecords().map(StaffMapper.toRecordEntity).toList();
-  }
+  Future<List<StaffRecordEntity>> getStaffRecords() async =>
+      const <StaffRecordEntity>[];
 
   @override
-  Future<List<PurchaseEntryEntity>> getPurchases() async {
-    return local.getPurchases().map(FinanceMapper.toPurchaseEntity).toList();
-  }
+  Future<List<PurchaseEntryEntity>> getPurchases() async =>
+      const <PurchaseEntryEntity>[];
 
   @override
-  Future<List<IncomeEntryEntity>> getIncome() async {
-    return local.getIncome().map(FinanceMapper.toIncomeEntity).toList();
-  }
+  Future<List<IncomeEntryEntity>> getIncome() async =>
+      const <IncomeEntryEntity>[];
 }

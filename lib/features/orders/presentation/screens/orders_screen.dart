@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:yummy/features/common/data/dummy_data.dart';
 import 'package:yummy/features/orders/domain/entities/active_order_entity.dart';
+import 'package:yummy/features/orders/domain/entities/order_enums.dart';
 import 'package:yummy/features/orders/presentation/bloc/orders/orders_bloc.dart';
 import 'package:yummy/features/orders/presentation/screens/group_order_screen.dart';
 import 'package:yummy/features/orders/presentation/screens/order_screen.dart';
-import 'package:yummy/features/tables/presentation/models/table_order_args.dart';
-import 'package:yummy/features/tables/presentation/models/tables_screen_args.dart';
+import 'package:yummy/features/tables/presentation/navigation/table_order_args.dart';
+import 'package:yummy/features/tables/presentation/navigation/tables_screen_args.dart';
 
 class OrdersScreen extends StatefulWidget {
   final bool allowMenuManagement;
@@ -27,6 +27,26 @@ class OrdersScreen extends StatefulWidget {
 class _OrdersScreenState extends State<OrdersScreen> {
   static const _filters = ['All', 'Table', 'Group', 'Pickup', 'Quick Billing'];
   String _selectedFilter = 'All';
+
+  @override
+  void initState() {
+    super.initState();
+    // Kick off initial fetch after the first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fetchOrders());
+  }
+
+  Future<void> _fetchOrders() async {
+    final bloc = context.read<OrdersBloc>();
+    bloc.add(
+      OrdersRequested(
+        filter: _selectedFilter == 'All' ? null : _selectedFilter,
+      ),
+    );
+    // Wait for the next non-loading state so pull-to-refresh completes.
+    await bloc.stream.firstWhere(
+      (state) => state.status != OrdersStatus.loading,
+    );
+  }
 
   void _goToDashboard() {
     final target = (widget.dashboardRoute.isNotEmpty
@@ -68,90 +88,98 @@ class _OrdersScreenState extends State<OrdersScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Create Order'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _OrdersSummary(
-            activeCount: dummyActiveOrders.length,
-            pendingBilling: pendingPayments,
-            totalValue: totalValue,
-          ),
-          const SizedBox(height: 24),
-          Text('Filter by type', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: _filters
-                  .map(
-                    (filter) => Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: ChoiceChip(
-                        label: Text(filter),
-                        selected: _selectedFilter == filter,
-                        onSelected: (_) =>
-                            setState(() => _selectedFilter = filter),
+      body: RefreshIndicator(
+        onRefresh: _fetchOrders,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            _OrdersSummary(
+              activeCount: allOrders.length,
+              pendingBilling: pendingPayments,
+              totalValue: totalValue,
+            ),
+            const SizedBox(height: 24),
+            Text('Filter by type', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _filters
+                    .map(
+                      (filter) => Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: ChoiceChip(
+                          label: Text(filter),
+                          selected: _selectedFilter == filter,
+                          onSelected: (_) {
+                            setState(() => _selectedFilter = filter);
+                            _fetchOrders();
+                          },
+                        ),
                       ),
-                    ),
-                  )
-                  .toList(),
+                    )
+                    .toList(),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          if (ordersState.status == OrdersStatus.loading)
-            const Center(child: CircularProgressIndicator())
-          else if (ordersState.status == OrdersStatus.failure)
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('Failed to load orders.'),
-              ),
-            )
-          else if (filteredOrders.isEmpty)
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Padding(
-                padding: EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Icon(Icons.inbox_outlined, size: 32, color: Colors.grey),
-                    SizedBox(height: 12),
-                    Text('No active orders in this segment.'),
-                  ],
+            const SizedBox(height: 16),
+            if (ordersState.status == OrdersStatus.loading)
+              const Center(child: CircularProgressIndicator())
+            else if (ordersState.status == OrdersStatus.failure)
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
+                child: const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('Failed to load orders.'),
+                ),
+              )
+            else if (filteredOrders.isEmpty)
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Icon(Icons.inbox_outlined, size: 32, color: Colors.grey),
+                      SizedBox(height: 12),
+                      Text('No active orders in this segment.'),
+                    ],
+                  ),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: filteredOrders.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final order = filteredOrders[index];
+                  return _OrderCard(
+                    order: order,
+                    onTap: () => _openOrder(order),
+                  );
+                },
               ),
-            )
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: filteredOrders.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final order = filteredOrders[index];
-                return _OrderCard(order: order, onTap: () => _openOrder(order));
-              },
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  void _openOrder(ActiveOrderEntity order) {
+  Future<void> _openOrder(ActiveOrderEntity order) async {
     final type = order.type.toLowerCase();
     if (type == 'table') {
       Navigator.pushNamed(
         context,
         '/table-order',
         arguments: TableOrderArgs(
+          tableId: order.tableId,
           tableName: order.reference,
-          status: order.status.toUpperCase(),
-          capacity: order.guests,
         ),
       );
     } else if (type == 'group') {
@@ -175,8 +203,29 @@ class _OrdersScreenState extends State<OrdersScreen> {
         '/order-screen',
         arguments: OrderScreenArgs(
           contextLabel: 'Checkout • ${order.type} ${order.reference}',
+          channel: _channelFromString(order.channel),
         ),
       );
+    }
+  }
+
+  OrderChannel _channelFromString(String raw) {
+    switch (raw.toLowerCase()) {
+      case 'table':
+        return OrderChannel.table;
+      case 'group':
+        return OrderChannel.group;
+      case 'pickup':
+        return OrderChannel.pickup;
+      case 'quick_billing':
+      case 'quick billing':
+        return OrderChannel.quickBilling;
+      case 'delivery':
+        return OrderChannel.delivery;
+      case 'online':
+        return OrderChannel.online;
+      default:
+        return OrderChannel.quickBilling;
     }
   }
 
@@ -260,17 +309,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 },
               ),
             ),
-            if (widget.allowMenuManagement) ...[
-              const SizedBox(height: 12),
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.pop(sheetContext);
-                  Navigator.pushNamed(parentContext, '/menu-management');
-                },
-                icon: const Icon(Icons.restaurant_menu),
-                label: const Text('Open Menu Management'),
-              ),
-            ],
           ],
         ),
       ),
@@ -287,6 +325,13 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final title = (order.tableName ?? '').isNotEmpty
+        ? order.tableName!
+        : '${order.type} • ${order.reference}';
+    final subtitleParts = <String>[
+      'Items: ${order.itemsCount}',
+      if (order.startedAt.isNotEmpty) 'Started ${order.startedAt}',
+    ];
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
@@ -304,14 +349,16 @@ class _OrderCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${order.type} • ${order.reference}',
+                          title,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         Text(
-                          '${order.id} • Started ${order.startedAt}',
-                          style: theme.textTheme.bodySmall,
+                          subtitleParts.join(' • '),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.hintColor,
+                          ),
                         ),
                       ],
                     ),
@@ -326,12 +373,6 @@ class _OrderCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              Text(
-                'Items: ${order.itemsCount} • Guests: ${order.guests} • Channel: ${order.channel}',
-              ),
-              if (order.contact != null)
-                Text(order.contact!, style: theme.textTheme.bodySmall),
-              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -344,8 +385,16 @@ class _OrderCard extends StatelessWidget {
                     avatar: const Icon(Icons.timelapse, size: 18),
                     label: Text(order.status),
                   ),
+
+                  // if (order.guests > 0)
+                  //   Chip(
+                  //     avatar: const Icon(Icons.group, size: 18),
+                  //     label: Text('Guests: ${order.guests}'),
+                  //   ),
                 ],
               ),
+              if (order.contact != null)
+                Text(order.contact!, style: theme.textTheme.bodySmall),
             ],
           ),
         ),

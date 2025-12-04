@@ -146,7 +146,13 @@ class TablesBloc extends Bloc<TablesEvent, TablesState> {
         },
         (remoteTable) async {
           await _upsertTable(
-            remoteTable.copyWith(category: event.table.category),
+            remoteTable.copyWith(
+              category: event.table.category,
+              notes: event.table.notes,
+              activeItems: event.table.activeItems,
+              pastOrders: event.table.pastOrders,
+              reservationName: event.table.reservationName,
+            ),
           );
         },
       );
@@ -237,7 +243,12 @@ class TablesBloc extends Bloc<TablesEvent, TablesState> {
     TableCategoryFilterChanged event,
     Emitter<TablesState> emit,
   ) {
-    emit(state.copyWith(filterCategory: event.category));
+    emit(
+      state.copyWith(
+        filterCategory: event.category,
+        selectedCategory: event.category,
+      ),
+    );
   }
 
   Future<void> _syncRemoteTableTypes(

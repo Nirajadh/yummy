@@ -1,5 +1,3 @@
-import 'package:yummy/features/common/data/dummy_data.dart' as dummy;
-
 class PurchaseEntryModel {
   String? vendor;
   String? category;
@@ -27,16 +25,6 @@ class PurchaseEntryModel {
       amount: amount,
       date: (json['date'] as String?)?.trim(),
       reference: (json['reference'] as String?)?.trim(),
-    );
-  }
-
-  factory PurchaseEntryModel.fromDummy(dummy.PurchaseEntry entry) {
-    return PurchaseEntryModel(
-      vendor: entry.vendor,
-      category: entry.category,
-      amount: entry.amount,
-      date: entry.date,
-      reference: entry.reference,
     );
   }
 

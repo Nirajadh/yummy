@@ -12,7 +12,6 @@ import 'package:yummy/features/auth/domain/usecases/login_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/register_usecase.dart';
 import 'package:yummy/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:yummy/features/common/data/datasources/local_dummy_data_source.dart';
 import 'package:yummy/features/common/data/repositories/restaurant_repository_impl.dart';
 import 'package:yummy/features/common/domain/repositories/restaurant_repository.dart';
 import 'package:yummy/features/groups/domain/usecases/get_groups_usecase.dart';
@@ -40,7 +39,14 @@ import 'package:yummy/features/menu/domain/usecases/get_menus_by_restaurant_usec
 import 'package:yummy/features/menu/domain/usecases/update_menu_usecase.dart';
 import 'package:yummy/features/menu/presentation/bloc/menu/menu_bloc.dart';
 import 'package:yummy/features/orders/domain/usecases/get_active_orders_usecase.dart';
+import 'package:yummy/features/orders/domain/usecases/create_order_usecase.dart';
+import 'package:yummy/features/orders/domain/usecases/add_order_items_usecase.dart';
+import 'package:yummy/features/orders/domain/repositories/order_repository.dart';
+import 'package:yummy/features/orders/data/repositories/order_repository_impl.dart';
+import 'package:yummy/features/orders/data/datasources/order_remote_data_source.dart';
 import 'package:yummy/features/orders/presentation/bloc/orders/orders_bloc.dart';
+import 'package:yummy/features/orders/presentation/bloc/create_order/create_order_bloc.dart';
+import 'package:yummy/features/orders/presentation/bloc/add_order_items/add_order_items_bloc.dart';
 import 'package:yummy/features/restaurant/domain/usecases/update_restaurant_usecase.dart';
 import 'package:yummy/features/staff_portal/data/repositories/staff_portal_repository_impl.dart';
 import 'package:yummy/features/staff_portal/domain/repositories/staff_portal_repository.dart';
@@ -61,6 +67,7 @@ import 'package:yummy/features/tables/domain/repositories/table_type_repository.
 import 'package:yummy/features/tables/domain/usecases/create_table_type_usecase.dart';
 import 'package:yummy/features/tables/domain/usecases/get_remote_tables_usecase.dart';
 import 'package:yummy/features/tables/domain/usecases/get_table_types_usecase.dart';
+import 'package:yummy/features/tables/domain/usecases/get_table_by_id_usecase.dart';
 import 'package:yummy/features/tables/domain/usecases/update_remote_table_usecase.dart';
 import 'package:yummy/features/tables/domain/usecases/delete_remote_table_usecase.dart';
 import 'package:yummy/features/restaurant/data/datasources/restaurant_remote_data_source.dart';
@@ -79,14 +86,13 @@ final sl = GetIt.instance;
 Future<void> setupDependencies() async {
   // Core
   sl.registerLazySingleton<AppApis>(() => AppApis());
-  sl.registerLazySingleton<LocalDummyDataSource>(() => LocalDummyDataSource());
   sl.registerLazySingleton<RestaurantDetailsService>(
     () => RestaurantDetailsService(),
   );
 
   // Repositories
   sl.registerLazySingleton<RestaurantRepository>(
-    () => RestaurantRepositoryImpl(local: sl()),
+    () => RestaurantRepositoryImpl(),
   );
   sl.registerLazySingleton<AdminRepository>(
     () => AdminRepositoryImpl(base: sl()),
@@ -133,6 +139,12 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton<MenuRepository>(
     () => MenuRepositoryImpl(remote: sl()),
   );
+  sl.registerLazySingleton<OrderRemoteDataSource>(
+    () => OrderRemoteDataSourceImpl(appApis: sl()),
+  );
+  sl.registerLazySingleton<OrderRepository>(
+    () => OrderRepositoryImpl(remote: sl()),
+  );
 
   // Use cases
   sl.registerFactory(() => RegisterUsecase(authRepository: sl()));
@@ -143,6 +155,8 @@ Future<void> setupDependencies() async {
   sl.registerFactory(() => GetStaffDashboardSnapshotUseCase(sl()));
   sl.registerFactory(() => GetStaffActiveOrdersUseCase(sl()));
   sl.registerFactory(() => GetActiveOrdersUseCase(sl()));
+  sl.registerFactory(() => CreateOrderUseCase(sl()));
+  sl.registerFactory(() => AddOrderItemsUseCase(sl()));
   sl.registerFactory(() => GetTablesUseCase(sl()));
   sl.registerFactory(() => UpsertTableUseCase(sl()));
   sl.registerFactory(() => DeleteTableUseCase(sl()));
@@ -167,6 +181,7 @@ Future<void> setupDependencies() async {
   sl.registerFactory(() => GetTableTypesUseCase(sl()));
   sl.registerFactory(() => DeleteRemoteTableUseCase(sl()));
   sl.registerFactory(() => UpdateRemoteTableUseCase(sl()));
+  sl.registerFactory(() => GetTableByIdUseCase(sl()));
 
   // Blocs
   sl.registerFactory(
@@ -183,7 +198,12 @@ Future<void> setupDependencies() async {
   sl.registerFactory(
     () => StaffDashboardBloc(getSnapshot: sl(), getActiveOrders: sl()),
   );
-  sl.registerFactory(() => OrdersBloc(getActiveOrders: sl()));
+  sl.registerFactory(
+    () => OrdersBloc(
+      getActiveOrders: sl(),
+      restaurantDetailsService: sl(),
+    ),
+  );
   sl.registerFactory(
     () => TablesBloc(
       upsertTable: sl(),
@@ -213,6 +233,13 @@ Future<void> setupDependencies() async {
   sl.registerFactory(
     () => RestaurantBloc(createRestaurant: sl(), updateRestaurant: sl()),
   );
+  sl.registerFactory(
+    () => CreateOrderBloc(
+      createOrder: sl(),
+      restaurantDetailsService: sl(),
+    ),
+  );
+  sl.registerFactory(() => AddOrderItemsBloc(addItems: sl()));
   sl.registerFactory(
     () => ItemCategoryBloc(
       getCategories: sl(),

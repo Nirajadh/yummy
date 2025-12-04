@@ -1,16 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:yummy/features/orders/domain/entities/bill_preview.dart';
+import 'package:yummy/features/orders/domain/entities/active_order_entity.dart';
+import 'package:yummy/features/orders/domain/entities/order_enums.dart';
 import 'package:yummy/features/orders/presentation/screens/order_screen.dart';
+import 'package:yummy/features/tables/domain/entities/table_entity.dart';
+import 'package:yummy/features/tables/presentation/bloc/tables/tables_bloc.dart';
 import 'package:yummy/features/tables/presentation/bloc/table_order/table_order_bloc.dart';
-import 'package:yummy/features/tables/presentation/models/table_order_args.dart';
-import 'package:yummy/features/tables/presentation/screens/widgets/cart_summary.dart';
+import 'package:yummy/features/tables/presentation/navigation/table_order_args.dart';
 
 class TableOrderScreen extends StatefulWidget {
-  const TableOrderScreen({super.key});
+  final TableOrderArgs? args;
+
+  const TableOrderScreen({super.key, this.args});
 
   @override
   State<TableOrderScreen> createState() => _TableOrderScreenState();
+}
+
+class _OrderLine {
+  final int? menuItemId;
+  final String name;
+  final int quantity;
+  final double unitPrice;
+
+  const _OrderLine({
+    this.menuItemId,
+    required this.name,
+    required this.quantity,
+    required this.unitPrice,
+  });
+
+  _OrderLine copyWith({int? quantity, double? unitPrice}) {
+    return _OrderLine(
+      menuItemId: menuItemId,
+      name: name,
+      quantity: quantity ?? this.quantity,
+      unitPrice: unitPrice ?? this.unitPrice,
+    );
+  }
+
+  double get lineTotal => unitPrice * quantity;
 }
 
 class _TableOrderScreenState extends State<TableOrderScreen> {
@@ -21,355 +50,317 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
     'RESERVED': Colors.blue,
   };
 
-  late TableOrderArgs _args;
-  bool _loaded = false;
-  late List<String> _pastOrders;
-  late String _status;
-  late String _category;
-
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_loaded) return;
-    final routeArgs = ModalRoute.of(context)?.settings.arguments;
-    _args = routeArgs is TableOrderArgs
-        ? routeArgs
-        : const TableOrderArgs(tableName: 'Table', status: 'FREE');
-    _pastOrders = List.of(_args.pastOrders);
-    _status = _args.status;
-    _category = _args.category;
-    context.read<TableOrderBloc>().add(TableOrderInitialized(_args.activeItems));
-    _loaded = true;
+  void initState() {
+    super.initState();
+    final args = widget.args;
+    context.read<TableOrderBloc>().add(
+      TableOrderStarted(
+        table: args?.table,
+        tableId: args?.tableId,
+        tableName: args?.tableName,
+      ),
+    );
+  }
+
+  List<_OrderLine> _mapActiveItems(List<String> rawItems) {
+    return rawItems.map((item) {
+      final quantity = _extractQuantity(item);
+      final name = _cleanItemName(item);
+      return _OrderLine(name: name, quantity: quantity, unitPrice: 0);
+    }).toList();
+  }
+
+  int _extractQuantity(String raw) {
+    final match = RegExp(r'x(\d+)\s*$').firstMatch(raw);
+    if (match != null) {
+      return int.tryParse(match.group(1) ?? '') ?? 1;
+    }
+    return 1;
+  }
+
+  String _cleanItemName(String raw) {
+    final cleaned = raw.replaceAll(RegExp(r'x\d+\s*$'), '').trim();
+    return cleaned.isNotEmpty ? cleaned : 'Item';
   }
 
   Color _statusColor(String status) => _statusColorMap[status] ?? Colors.grey;
+
+  TableEntity? _currentTable(
+    TableOrderState orderState,
+    TablesState tablesState,
+  ) {
+    if (orderState.table != null) return orderState.table;
+    final id = orderState.tableId;
+    if (id == null) return null;
+    for (final table in tablesState.tables) {
+      if (table.id == id) return table;
+    }
+    return null;
+  }
+
+  void _handleTablesUpdate(TablesState state) {
+    final orderState = context.read<TableOrderBloc>().state;
+    final id = orderState.tableId;
+    if (id == null) return;
+    final updated = _findTableById(state, id);
+    if (updated != null) {
+      context.read<TableOrderBloc>().add(TableOrderTableUpdated(updated));
+    }
+  }
+
+  TableEntity? _findTableById(TablesState state, int tableId) {
+    for (final table in state.tables) {
+      if (table.id == tableId) return table;
+    }
+    return null;
+  }
 
   void _showMessage(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  void _openCartSheet() {
+  void _updateStatus(String status, TableEntity? table) {
+    if (table == null) return;
+    final updated = table.copyWith(status: status);
+    context.read<TablesBloc>().add(TableSaved(updated));
+    context.read<TableOrderBloc>().add(
+      TableOrderStatusChanged(status, message: 'Status updated'),
+    );
+  }
+
+  Future<void> _startOrAppendOrder(
+    TableEntity? table, {
+    ActiveOrderEntity? activeOrder,
+  }) async {
+    final orderBlocState = context.read<TableOrderBloc>().state;
+    final tableId =
+        orderBlocState.tableId ?? table?.id ?? widget.args?.tableId;
+    final tableLabel = table?.name ?? orderBlocState.tableName ?? 'Table';
+    final isAppending = activeOrder != null;
+
+    final result = await Navigator.pushNamed(
+      context,
+      '/order-screen',
+      arguments: OrderScreenArgs(
+        contextLabel: isAppending
+            ? 'Order ${activeOrder?.reference ?? ''}'
+            : 'Table: $tableLabel',
+        channel: OrderChannel.table,
+        tableId: tableId,
+        appendToExisting: isAppending,
+        existingOrderId: activeOrder?.id,
+        existingOrderReference: activeOrder?.reference,
+        existingOrderItems: activeOrder?.items ?? const [],
+      ),
+    );
+
+    if (!mounted) return;
+
+    final orderResult = result is OrderScreenResult ? result : null;
+    if (orderResult == null) {
+      _showMessage('No items added.');
+      return;
+    }
+    if (!orderResult.sentToKitchen) {
+      _showMessage('Send to kitchen to add these items.');
+      return;
+    }
+
+    _updateStatus('OCCUPIED', table);
+    // Refresh active orders to reflect the updated order.
+    final current = context.read<TableOrderBloc>().state;
+    context.read<TableOrderBloc>().add(
+          TableOrderStarted(
+            table: table ?? current.table,
+            tableId: current.tableId ?? tableId,
+            tableName: current.tableName ?? tableLabel,
+          ),
+        );
+    _showMessage(
+      isAppending ? 'Items added to order.' : 'Order placed.',
+    );
+  }
+
+  void _showOrderItems(ActiveOrderEntity order) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final surface = theme.cardColor;
-    final textColor =
-        theme.textTheme.bodyLarge?.color ??
-        (theme.brightness == Brightness.dark ? Colors.white : Colors.black87);
-    final subtle = textColor.withValues(alpha: 0.65);
+    final items = order.items;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      showDragHandle: true,
       builder: (sheetContext) {
         final bottomInset = MediaQuery.of(sheetContext).viewInsets.bottom;
-        return BlocProvider.value(
-          value: context.read<TableOrderBloc>(),
-          child: BlocBuilder<TableOrderBloc, TableOrderState>(
-            builder: (context, state) {
-            final subtotal = state.subtotal;
-            return Padding(
-              padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomInset),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.arrow_back, color: subtle),
-                        onPressed: () => Navigator.pop(sheetContext),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Confirmation',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: textColor,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: Icon(Icons.add, color: colorScheme.primary),
-                        onPressed: () {
-                          Navigator.pop(sheetContext);
-                          _addItems();
-                        },
-                      ),
-                    ],
-                  ),
-                  Text(
-                    'Orders #${_args.tableName}',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: subtle),
-                  ),
-                  const SizedBox(height: 12),
-                  if (state.lines.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Center(
-                        child: Text(
-                          'No items added yet.',
-                          style: TextStyle(fontSize: 16, color: subtle),
-                        ),
-                      ),
-                    )
-                  else
-                    Flexible(
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: state.lines.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final line = state.lines[index];
-                          final note = state.notes[line.name] ?? '';
-                          return Container(
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.4),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: theme.dividerColor.withValues(
-                                  alpha: 0.2,
-                                ),
-                              ),
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomInset),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${order.type} • ${order.reference}',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
                             ),
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    CircleAvatar(
-                                      backgroundColor: colorScheme.primary
-                                          .withValues(alpha: 0.12),
-                                      child: Icon(
-                                        Icons.restaurant_menu,
-                                        color: colorScheme.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            line.name,
-                                            style: theme.textTheme.titleMedium
-                                                ?.copyWith(
-                                                  color: textColor,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            '\$12.00',
-                                            style: TextStyle(
-                                              color: subtle,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: theme.colorScheme.surface
-                                            .withValues(alpha: 0.4),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          IconButton(
-                                            icon: Icon(
-                                              Icons.remove,
-                                              color: subtle,
-                                              size: 18,
-                                            ),
-                                            onPressed: () => context
-                                                .read<TableOrderBloc>()
-                                                .add(
-                                                  TableOrderDecremented(
-                                                    line.name,
-                                                  ),
-                                                ),
-                                          ),
-                                          Text(
-                                            '${line.quantity}',
-                                            style: theme.textTheme.titleMedium
-                                                ?.copyWith(
-                                                  color: textColor,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                          ),
-                                          IconButton(
-                                            icon: Icon(
-                                              Icons.add,
-                                              color: subtle,
-                                              size: 18,
-                                            ),
-                                            onPressed: () => context
-                                                .read<TableOrderBloc>()
-                                                .add(
-                                                  TableOrderIncremented(
-                                                    line.name,
-                                                  ),
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          '\$${(12.0 * line.quantity).toStringAsFixed(2)}',
-                                          style: theme.textTheme.titleMedium
-                                              ?.copyWith(
-                                                color: textColor,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        IconButton(
-                                          icon: Icon(
-                                            Icons.delete_outline,
-                                            color: colorScheme.primary,
-                                          ),
-                                          onPressed: () => context
-                                              .read<TableOrderBloc>()
-                                              .add(
-                                                TableOrderItemRemoved(
-                                                  line.name,
-                                                ),
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                TextField(
-                                  controller: TextEditingController(text: note),
-                                  style: TextStyle(color: textColor),
-                                  decoration: InputDecoration(
-                                    hintText: 'Order note...',
-                                    hintStyle: TextStyle(color: subtle),
-                                    filled: true,
-                                    fillColor: theme
-                                        .colorScheme
-                                        .surfaceContainerHighest
-                                        .withValues(alpha: 0.4),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                  ),
-                                  onChanged: (value) => context
-                                      .read<TableOrderBloc>()
-                                      .add(
-                                        TableOrderNoteChanged(
-                                          line.name,
-                                          value,
-                                        ),
-                                      ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                          ),
+                          Text(
+                            'Status: ${order.status}',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
                       ),
                     ),
-                  const SizedBox(height: 12),
-                  CartSummary(subtotal: subtotal, discount: 0),
-                ],
-              ),
-            );
-            },
+                    Text(
+                      '\$${order.amount.toStringAsFixed(2)}',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (items.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Text('No items found for this order.'),
+                  )
+                else
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 360),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => const Divider(height: 16),
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.name,
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Qty: ${item.qty} • \$${item.unitPrice.toStringAsFixed(2)} each',
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                                  if ((item.notes ?? '').isNotEmpty)
+                                    Text(
+                                      item.notes!,
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '\$${item.lineTotal.toStringAsFixed(2)}',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  Future<void> _addItems() async {
-    final result = await Navigator.pushNamed(
-      context,
-      '/order-screen',
-      arguments: OrderScreenArgs(contextLabel: 'Table: ${_args.tableName}'),
-    );
-    final bool sentToKitchen = result is OrderScreenResult
-        ? result.sentToKitchen
-        : result == true;
-    if (sentToKitchen && result is OrderScreenResult) {
-      setState(() {
-        _status = 'OCCUPIED';
-      });
-      for (final item in result.items) {
-        context.read<TableOrderBloc>().add(
-              TableOrderItemAdded(item.name, item.quantity),
-            );
-      }
+  void _markFree(TableEntity? table) {
+    if (table != null) {
+      final cleared = table.copyWith(status: 'FREE', activeItems: const []);
+      context.read<TablesBloc>().add(TableSaved(cleared));
+      context.read<TableOrderBloc>().add(TableOrderTableUpdated(cleared));
+      context.read<TableOrderBloc>().add(
+        const TableOrderStatusChanged('FREE', message: 'Status updated'),
+      );
+    } else {
+      _updateStatus('FREE', table);
     }
-  }
-
-  BillPreviewArgs _buildBill() {
-    final items = context.read<TableOrderBloc>().state.lines
-        .map(
-          (line) => BillLineItem(
-            name: line.name,
-            quantity: line.quantity,
-            price: 12.0,
-          ),
-        )
-        .toList();
-    final subtotal = items.fold<double>(0, (sum, item) => sum + item.lineTotal);
-    final total = subtotal;
-    return BillPreviewArgs(
-      orderLabel: 'Table • ${_args.tableName}',
-      items: items,
-      subtotal: subtotal,
-      tax: 0,
-      serviceCharge: 0,
-      grandTotal: total,
-    );
+    _showMessage('Table marked free.');
   }
 
   @override
   Widget build(BuildContext context) {
-    final status = _status.toUpperCase();
+    final tablesState = context.watch<TablesBloc>().state;
+    final orderState = context.watch<TableOrderBloc>().state;
+    final table = _currentTable(orderState, tablesState) ?? widget.args?.table;
+    final tableName = table?.name ?? orderState.tableName ?? 'Table';
+    final orders = orderState.activeOrders;
+    // Only one active order is expected per table; use the first if present.
+    final ActiveOrderEntity? activeOrder =
+        orders.isNotEmpty ? orders.first : null;
+    final hasActiveOrder = activeOrder != null;
+    final pastOrders = table?.pastOrders ?? const [];
+    final status = (table?.status ?? 'FREE').toUpperCase();
     final isFree = status == 'FREE';
-    final isOccupied = status == 'OCCUPIED';
-    final hasOrderedItems =
-        context.read<TableOrderBloc>().state.lines.isNotEmpty;
-    final hasHistory = _pastOrders.isNotEmpty;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Table: ${_args.tableName}'),
-        actions: [
-          TextButton.icon(
-            onPressed: () => _showMessage('Table marked free (UI only).'),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.primary,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.12),
+    final hasHistory = pastOrders.isNotEmpty;
+    final isLoading = orderState.status == TableOrderStatus.loading;
+    final loadError = orderState.status == TableOrderStatus.failure
+        ? orderState.errorMessage
+        : null;
+    final ctaLabel =
+        hasActiveOrder ? 'Add Items to ${activeOrder!.reference}' : 'Create Order';
+
+    return BlocListener<TablesBloc, TablesState>(
+      listener: (context, state) => _handleTablesUpdate(state),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Table: $tableName'),
+          bottom: null,
+          actions: [
+            TextButton.icon(
+              onPressed: () => _markFree(table),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.primary,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.12),
+              ),
+              icon: const Icon(Icons.check_circle),
+              label: const Text('Mark Free'),
             ),
-            icon: const Icon(Icons.check_circle),
-            label: const Text('Mark Free'),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(8.0),
           children: [
+            if (isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: LinearProgressIndicator(),
+              ),
+            if (loadError != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  loadError,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             Card(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -383,7 +374,7 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          _args.tableName,
+                          tableName,
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -395,15 +386,13 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: _statusColor(
-                              _status,
-                            ).withValues(alpha: 0.15),
+                            color: _statusColor(status).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(30),
                           ),
                           child: Text(
-                            _status,
+                            status,
                             style: TextStyle(
-                              color: _statusColor(_status),
+                              color: _statusColor(status),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -411,75 +400,50 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Text('Category: $_category'),
+                    Text('Category: ${table?.category ?? 'General'}'),
                     const SizedBox(height: 4),
-                    Text('Capacity: ${_args.capacity} guests'),
-                    if (_args.notes.isNotEmpty) Text('Notes: ${_args.notes}'),
+                    Text('Capacity: ${table?.capacity ?? 0} guests'),
+                    if ((table?.notes ?? '').isNotEmpty)
+                      Text('Notes: ${table?.notes ?? ''}'),
+                    if ((table?.reservationName ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text('Reservation: ${table?.reservationName ?? ''}'),
+                    ],
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _addItems,
-                    icon: const Icon(Icons.playlist_add),
-                    label: const Text('Add Items'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 14,
-                      ),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () =>
+                      _startOrAppendOrder(table, activeOrder: activeOrder),
+                  icon: const Icon(Icons.playlist_add),
+                  label: Text(ctaLabel),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _openCartSheet,
-                    icon: const Icon(Icons.shopping_cart_outlined),
-                    label: const Text('Cart'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      final bill = _buildBill();
-                      Navigator.pushNamed(
-                        context,
-                        '/bill-preview',
-                        arguments: bill,
-                      );
-                    },
-                    icon: const Icon(Icons.receipt_long),
-                    label: const Text('Checkout'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-              ],
-            ),
+              ),
             const SizedBox(height: 24),
             if (isFree) ...[
               Card(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+                child: const Padding(
+                  padding: EdgeInsets.all(16),
                   child: Row(
-                    children: const [
+                    children: [
                       Icon(Icons.info_outline, color: Colors.deepOrange),
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Table is free. Tap "Add Items" to start a brand new order.',
+                          'Table is free. Tap "Create Order" to start a brand new order.',
                         ),
                       ),
                     ],
@@ -488,7 +452,7 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
               ),
               const SizedBox(height: 24),
             ],
-            if (status == 'RESERVED' && _args.reservationName != null) ...[
+            if (status == 'RESERVED' && (table?.notes ?? '').isNotEmpty) ...[
               Card(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -503,52 +467,83 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
-                      Text('Name: ${_args.reservationName}'),
-                      if (_args.notes.isNotEmpty) Text('Notes: ${_args.notes}'),
+                      Text('Notes: ${table?.notes ?? ''}'),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 24),
             ],
-            if (isOccupied && hasOrderedItems) ...[
-              const Text(
-                'Ordered Items',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
+            const Text(
+              'Ordered Items',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            if (orders.isEmpty)
               Card(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: BlocBuilder<TableOrderBloc, TableOrderState>(
-                  builder: (context, state) {
-                    return ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      padding: const EdgeInsets.all(16),
-                      itemBuilder: (context, index) {
-                        final line = state.lines[index];
-                        return Row(
-                          children: [
-                            const Icon(
-                              Icons.check_circle,
-                              size: 18,
-                              color: Colors.green,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
+                child: const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('No orders for this table yet.'),
+                ),
+              )
+            else
+              Column(
+                children: orders
+                    .map(
+                      (order) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () => _showOrderItems(order),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    line.name,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              order.reference,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                            Text(
+                                              'Status: ${order.status}',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Text(
+                                        '\$${order.amount.toStringAsFixed(2)}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                      ),
+                                    ],
                                   ),
+                                  const SizedBox(height: 8),
                                   Text(
-                                    'Qty: ${line.quantity}',
+                                    'Items: ${order.itemsCount} • Guests: ${order.guests}',
                                     style: const TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey,
@@ -557,24 +552,13 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
                                 ],
                               ),
                             ),
-                            Text(
-                              '\$${(12.0 * line.quantity).toStringAsFixed(2)}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemCount: state.lines.length,
-                    );
-                  },
-                ),
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
               ),
-              const SizedBox(height: 24),
-            ],
+            const SizedBox(height: 24),
             if (hasHistory) ...[
               const Text(
                 'Previous Orders',
@@ -589,12 +573,12 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
-                  itemCount: _pastOrders.length,
+                  itemCount: pastOrders.length,
                   itemBuilder: (context, index) => Row(
                     children: [
                       const Icon(Icons.history, size: 18, color: Colors.indigo),
                       const SizedBox(width: 8),
-                      Expanded(child: Text(_pastOrders[index])),
+                      Expanded(child: Text(pastOrders[index])),
                     ],
                   ),
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -607,15 +591,15 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            Expanded(
-              child: ListView.separated(
-                itemCount: 3,
-                separatorBuilder: (_, __) => const Divider(),
-                itemBuilder: (context, index) => ListTile(
-                  leading: const Icon(Icons.note_alt_outlined),
-                  title: Text('Note ${index + 1} for ${_args.tableName}'),
-                  subtitle: const Text('Sample update for staff coordination.'),
-                ),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 3,
+              separatorBuilder: (_, __) => const Divider(),
+              itemBuilder: (context, index) => ListTile(
+                leading: const Icon(Icons.note_alt_outlined),
+                title: Text('Note ${index + 1} for $tableName'),
+                subtitle: const Text('Sample update for staff coordination.'),
               ),
             ),
           ],

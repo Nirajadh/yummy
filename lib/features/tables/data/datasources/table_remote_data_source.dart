@@ -25,6 +25,8 @@ abstract interface class TableRemoteDataSource {
   Future<List<RestaurantTableModel>> getTables({required int restaurantId});
 
   Future<void> deleteTable({required int tableId});
+
+  Future<RestaurantTableModel> getTableById({required int tableId});
 }
 
 class TableRemoteDataSourceImpl implements TableRemoteDataSource {
@@ -168,6 +170,38 @@ class TableRemoteDataSourceImpl implements TableRemoteDataSource {
       );
       final statusCode = response.statusCode ?? 0;
       if (statusCode >= 200 && statusCode < 300) return;
+      throw ServerException(
+        'Unexpected error: ${response.statusCode ?? 'no status'}',
+      );
+    } on DioException catch (e) {
+      final message = e.response?.data is Map<String, dynamic>
+          ? (e.response!.data['detail'] ??
+              e.response!.data['message'] ??
+              'Request failed')
+          : e.message;
+      throw ServerException(message?.toString() ?? 'Request failed');
+    } on SocketException {
+      throw const NetworkException('No Internet Connection');
+    } on FormatException {
+      throw const DataParsingException('Bad response format');
+    }
+  }
+
+  @override
+  Future<RestaurantTableModel> getTableById({required int tableId}) async {
+    try {
+      final response = await appApis.sendRequest.get(
+        '/restaurants/tables/single/$tableId',
+      );
+      final statusCode = response.statusCode ?? 0;
+      if (statusCode >= 200 && statusCode < 300 && response.data is Map) {
+        final map = response.data as Map<String, dynamic>;
+        final data = map['data'];
+        if (data is Map<String, dynamic>) {
+          return RestaurantTableModel.fromJson(data);
+        }
+        throw const ServerException('Missing table data');
+      }
       throw ServerException(
         'Unexpected error: ${response.statusCode ?? 'no status'}',
       );

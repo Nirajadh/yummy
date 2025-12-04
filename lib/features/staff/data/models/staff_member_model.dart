@@ -1,5 +1,3 @@
-import 'package:yummy/features/common/data/dummy_data.dart' as dummy;
-
 class StaffMemberModel {
   String? name;
   String? role;
@@ -45,22 +43,6 @@ class StaffMemberModel {
       loginId: (json['loginId'] as String?)?.trim(),
       tempPin: (json['tempPin'] as String?)?.trim(),
       notes: (json['notes'] as String?)?.trim(),
-    );
-  }
-
-  factory StaffMemberModel.fromDummy(dummy.StaffMember member) {
-    return StaffMemberModel(
-      name: member.name,
-      role: member.role,
-      salary: member.salary,
-      phone: member.phone,
-      email: member.email,
-      joinedDate: member.joinedDate,
-      status: member.status,
-      shift: member.shift,
-      notes: member.notes,
-      loginId: member.loginId,
-      tempPin: member.tempPin,
     );
   }
 

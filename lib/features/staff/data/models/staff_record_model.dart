@@ -1,5 +1,3 @@
-import 'package:yummy/features/common/data/dummy_data.dart' as dummy;
-
 class StaffRecordModel {
   String? staffName;
   String? type;
@@ -27,16 +25,6 @@ class StaffRecordModel {
       amount: amount,
       date: (json['date'] as String?)?.trim(),
       note: (json['note'] as String?)?.trim(),
-    );
-  }
-
-  factory StaffRecordModel.fromDummy(dummy.StaffRecord record) {
-    return StaffRecordModel(
-      staffName: record.staffName,
-      type: record.type,
-      amount: record.amount,
-      date: record.date,
-      note: record.note,
     );
   }
 

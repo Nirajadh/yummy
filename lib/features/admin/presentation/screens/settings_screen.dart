@@ -11,12 +11,57 @@ class SettingsScreen extends StatelessWidget {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  void _showAppearancePicker(BuildContext context, ThemeMode current) {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('Light'),
+              leading: Radio<ThemeMode>(
+                value: ThemeMode.light,
+                groupValue: current,
+                onChanged: (_) {
+                  Navigator.pop(sheetContext);
+                  context.read<SettingsBloc>().add(
+                        const AppearanceChanged(ThemeMode.light),
+                      );
+                },
+              ),
+            ),
+            ListTile(
+              title: const Text('Dark'),
+              leading: Radio<ThemeMode>(
+                value: ThemeMode.dark,
+                groupValue: current,
+                onChanged: (_) {
+                  Navigator.pop(sheetContext);
+                  context.read<SettingsBloc>().add(
+                        const AppearanceChanged(ThemeMode.dark),
+                      );
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: BlocBuilder<SettingsBloc, SettingsState>(
         builder: (context, state) {
+          final appearanceLabel =
+              state.appearance == ThemeMode.dark ? 'Dark' : 'Light';
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: [
@@ -24,8 +69,8 @@ class SettingsScreen extends StatelessWidget {
               _SettingTile(
                 icon: Icons.favorite_border,
                 title: 'Appearance',
-                subtitle: 'Dark and light mode, font size',
-                onTap: () => _showSnack(context, 'Appearance coming soon'),
+                subtitle: 'Theme: $appearanceLabel',
+                onTap: () => _showAppearancePicker(context, state.appearance),
               ),
               _SettingTile(
                 icon: Icons.storefront_outlined,
