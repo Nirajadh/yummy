@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/features/orders/domain/entities/active_order_entity.dart';
 import 'package:yummy/features/orders/domain/entities/order_enums.dart';
 import 'package:yummy/features/orders/presentation/screens/order_screen.dart';
+import 'package:yummy/features/orders/presentation/widgets/order_cart_sheet.dart';
 import 'package:yummy/features/tables/domain/entities/table_entity.dart';
 import 'package:yummy/features/tables/presentation/bloc/tables/tables_bloc.dart';
 import 'package:yummy/features/tables/presentation/bloc/table_order/table_order_bloc.dart';
@@ -15,31 +16,6 @@ class TableOrderScreen extends StatefulWidget {
 
   @override
   State<TableOrderScreen> createState() => _TableOrderScreenState();
-}
-
-class _OrderLine {
-  final int? menuItemId;
-  final String name;
-  final int quantity;
-  final double unitPrice;
-
-  const _OrderLine({
-    this.menuItemId,
-    required this.name,
-    required this.quantity,
-    required this.unitPrice,
-  });
-
-  _OrderLine copyWith({int? quantity, double? unitPrice}) {
-    return _OrderLine(
-      menuItemId: menuItemId,
-      name: name,
-      quantity: quantity ?? this.quantity,
-      unitPrice: unitPrice ?? this.unitPrice,
-    );
-  }
-
-  double get lineTotal => unitPrice * quantity;
 }
 
 class _TableOrderScreenState extends State<TableOrderScreen> {
@@ -61,27 +37,6 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
         tableName: args?.tableName,
       ),
     );
-  }
-
-  List<_OrderLine> _mapActiveItems(List<String> rawItems) {
-    return rawItems.map((item) {
-      final quantity = _extractQuantity(item);
-      final name = _cleanItemName(item);
-      return _OrderLine(name: name, quantity: quantity, unitPrice: 0);
-    }).toList();
-  }
-
-  int _extractQuantity(String raw) {
-    final match = RegExp(r'x(\d+)\s*$').firstMatch(raw);
-    if (match != null) {
-      return int.tryParse(match.group(1) ?? '') ?? 1;
-    }
-    return 1;
-  }
-
-  String _cleanItemName(String raw) {
-    final cleaned = raw.replaceAll(RegExp(r'x\d+\s*$'), '').trim();
-    return cleaned.isNotEmpty ? cleaned : 'Item';
   }
 
   Color _statusColor(String status) => _statusColorMap[status] ?? Colors.grey;
@@ -120,6 +75,39 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  List<OrderCartLine> _cartLinesFromOrders(List<ActiveOrderEntity> orders) {
+    final lines = <OrderCartLine>[];
+    for (final order in orders) {
+      for (final item in order.items) {
+        lines.add(
+          OrderCartLine(
+            name: item.name,
+            quantity: item.qty,
+            unitPrice: item.unitPrice,
+          ),
+        );
+      }
+    }
+    // Merge by name to avoid duplicates across orders.
+    final Map<String, OrderCartLine> merged = {};
+    for (final line in lines) {
+      final key = line.name.toLowerCase();
+      final existing = merged[key];
+      if (existing == null) {
+        merged[key] = line;
+      } else {
+        merged[key] = OrderCartLine(
+          name: existing.name,
+          quantity: existing.quantity + line.quantity,
+          unitPrice: existing.unitPrice > 0
+              ? existing.unitPrice
+              : line.unitPrice,
+        );
+      }
+    }
+    return merged.values.toList();
+  }
+
   void _updateStatus(String status, TableEntity? table) {
     if (table == null) return;
     final updated = table.copyWith(status: status);
@@ -134,8 +122,7 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
     ActiveOrderEntity? activeOrder,
   }) async {
     final orderBlocState = context.read<TableOrderBloc>().state;
-    final tableId =
-        orderBlocState.tableId ?? table?.id ?? widget.args?.tableId;
+    final tableId = orderBlocState.tableId ?? table?.id ?? widget.args?.tableId;
     final tableLabel = table?.name ?? orderBlocState.tableName ?? 'Table';
     final isAppending = activeOrder != null;
 
@@ -144,7 +131,7 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
       '/order-screen',
       arguments: OrderScreenArgs(
         contextLabel: isAppending
-            ? 'Order ${activeOrder?.reference ?? ''}'
+            ? 'Order ${activeOrder.reference}'
             : 'Table: $tableLabel',
         channel: OrderChannel.table,
         tableId: tableId,
@@ -171,15 +158,13 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
     // Refresh active orders to reflect the updated order.
     final current = context.read<TableOrderBloc>().state;
     context.read<TableOrderBloc>().add(
-          TableOrderStarted(
-            table: table ?? current.table,
-            tableId: current.tableId ?? tableId,
-            tableName: current.tableName ?? tableLabel,
-          ),
-        );
-    _showMessage(
-      isAppending ? 'Items added to order.' : 'Order placed.',
+      TableOrderStarted(
+        table: table ?? current.table,
+        tableId: current.tableId ?? tableId,
+        tableName: current.tableName ?? tableLabel,
+      ),
     );
+    _showMessage(isAppending ? 'Items added to order.' : 'Order placed.');
   }
 
   void _showOrderItems(ActiveOrderEntity order) {
@@ -299,6 +284,16 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
     _showMessage('Table marked free.');
   }
 
+  Future<void> _openCartSheet(String tableName, TableEntity? table) async {
+    final orders = context.read<TableOrderBloc>().state.activeOrders;
+    final lines = _cartLinesFromOrders(orders);
+    await showOrderCartSheet(
+      context,
+      title: 'Table • $tableName',
+      lines: lines,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tablesState = context.watch<TablesBloc>().state;
@@ -307,8 +302,9 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
     final tableName = table?.name ?? orderState.tableName ?? 'Table';
     final orders = orderState.activeOrders;
     // Only one active order is expected per table; use the first if present.
-    final ActiveOrderEntity? activeOrder =
-        orders.isNotEmpty ? orders.first : null;
+    final ActiveOrderEntity? activeOrder = orders.isNotEmpty
+        ? orders.first
+        : null;
     final hasActiveOrder = activeOrder != null;
     final pastOrders = table?.pastOrders ?? const [];
     final status = (table?.status ?? 'FREE').toUpperCase();
@@ -318,8 +314,9 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
     final loadError = orderState.status == TableOrderStatus.failure
         ? orderState.errorMessage
         : null;
-    final ctaLabel =
-        hasActiveOrder ? 'Add Items to ${activeOrder!.reference}' : 'Create Order';
+    final ctaLabel = hasActiveOrder
+        ? 'Add Items to ${activeOrder.reference}'
+        : 'Create Order';
 
     return BlocListener<TablesBloc, TablesState>(
       listener: (context, state) => _handleTablesUpdate(state),
@@ -414,21 +411,34 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
               ),
             ),
             const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () =>
-                      _startOrAppendOrder(table, activeOrder: activeOrder),
-                  icon: const Icon(Icons.playlist_add),
-                  label: Text(ctaLabel),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 14,
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () =>
+                        _startOrAppendOrder(table, activeOrder: activeOrder),
+                    icon: const Icon(Icons.playlist_add),
+                    label: Text(ctaLabel),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
                     ),
                   ),
                 ),
-              ),
+                if (hasActiveOrder) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _openCartSheet(tableName, table),
+                      icon: const Icon(Icons.shopping_cart_outlined),
+                      label: const Text('Cart'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
             const SizedBox(height: 24),
             if (isFree) ...[
               Card(
