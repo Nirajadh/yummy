@@ -102,9 +102,7 @@ class _AppScopeState extends State<_AppScope> {
     return MultiBlocProvider(
       key: ValueKey('session-${widget.sessionKey}'),
       providers: [
-        BlocProvider(
-          create: (_) => sl<SettingsBloc>(),
-        ),
+        BlocProvider(create: (_) => sl<SettingsBloc>()),
         BlocProvider(
           create: (_) =>
               sl<AdminDashboardBloc>()..add(const AdminDashboardStarted()),

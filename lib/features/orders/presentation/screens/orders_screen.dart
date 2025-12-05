@@ -328,9 +328,10 @@ class _OrderCard extends StatelessWidget {
     final title = (order.tableName ?? '').isNotEmpty
         ? order.tableName!
         : '${order.type} • ${order.reference}';
+    final startedAt = _formatOrderTimestamp(order.startedAt);
     final subtitleParts = <String>[
       'Items: ${order.itemsCount}',
-      if (order.startedAt.isNotEmpty) 'Started ${order.startedAt}',
+      if (startedAt.isNotEmpty) 'Started $startedAt',
     ];
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -504,3 +505,34 @@ class _OrderCreationOption {
 }
 
 String _formatCurrency(double value) => '\$${value.toStringAsFixed(2)}';
+
+String _formatOrderTimestamp(String raw) {
+  if (raw.isEmpty) return '';
+  final parsed = DateTime.tryParse(raw);
+  if (parsed == null) return raw;
+
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec'
+  ];
+
+  final local = parsed.toLocal();
+  final month = months[local.month - 1];
+  final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
+  final minute = local.minute.toString().padLeft(2, '0');
+  final period = local.hour >= 12 ? 'PM' : 'AM';
+  final datePart =
+      '${month} ${local.day}${local.year != DateTime.now().year ? ', ${local.year}' : ''}';
+
+  return '$datePart • $hour:$minute $period';
+}

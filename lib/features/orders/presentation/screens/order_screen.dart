@@ -176,40 +176,6 @@ class _OrderScreenState extends State<OrderScreen> {
         .toList();
   }
 
-  List<OrderItemInput> _mergeWithExisting({
-    required List<OrderItemEntity> existingItems,
-    required List<OrderItemInput> newItems,
-  }) {
-    final Map<int, OrderItemInput> merged = {};
-
-    for (final item in existingItems) {
-      final menuId = item.menuItemId;
-      if (menuId == null) {
-        throw StateError('Existing order item is missing menu item id.');
-      }
-      merged[menuId] = OrderItemInput(
-        menuItemId: menuId,
-        qty: item.qty,
-        notes: item.notes,
-      );
-    }
-
-    for (final item in newItems) {
-      final current = merged[item.menuItemId];
-      if (current != null) {
-        merged[item.menuItemId] = OrderItemInput(
-          menuItemId: item.menuItemId,
-          qty: current.qty + item.qty,
-          notes: current.notes ?? item.notes,
-        );
-      } else {
-        merged[item.menuItemId] = item;
-      }
-    }
-
-    return merged.values.toList();
-  }
-
   void _submitOrder(OrderCartState cartState) {
     if (!cartState.hasItems) {
       _showAction('Add items before placing the order');
@@ -224,19 +190,8 @@ class _OrderScreenState extends State<OrderScreen> {
           _showAction('Order ID missing for existing order');
           return;
         }
-        final existingItems = _args.existingOrderItems ?? const [];
-        late final List<OrderItemInput> merged;
-        try {
-          merged = _mergeWithExisting(
-            existingItems: existingItems,
-            newItems: items,
-          );
-        } on StateError catch (e) {
-          _showAction(e.message);
-          return;
-        }
         context.read<AddOrderItemsBloc>().add(
-              AddOrderItemsSubmitted(orderId: orderId, items: merged),
+              AddOrderItemsSubmitted(orderId: orderId, items: items),
             );
         return;
       }

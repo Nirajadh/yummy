@@ -75,6 +75,28 @@ class OrderRepositoryImpl implements OrderRepository {
   }
 
   @override
+  Future<Either<Failure, OrderEntity>> updateOrderItems({
+    required int orderId,
+    required List<OrderItemInput> items,
+  }) async {
+    try {
+      final model = await remote.updateOrderItems(
+        orderId: orderId,
+        items: items,
+      );
+      return Right(OrderMapper.toOrderEntity(model));
+    } on ServerException catch (e) {
+      return Left(Failure(e.message));
+    } on NetworkException catch (e) {
+      return Left(Failure(e.message));
+    } on DataParsingException catch (e) {
+      return Left(Failure(e.message));
+    } catch (e) {
+      return Left(Failure('An unexpected error occurred: $e'));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<ActiveOrderEntity>>> listOrders({
     required int restaurantId,
     String? status,

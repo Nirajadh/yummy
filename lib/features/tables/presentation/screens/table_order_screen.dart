@@ -81,6 +81,7 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
       for (final item in order.items) {
         lines.add(
           OrderCartLine(
+            menuItemId: item.menuItemId,
             name: item.name,
             quantity: item.qty,
             unitPrice: item.unitPrice,
@@ -88,24 +89,8 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
         );
       }
     }
-    // Merge by name to avoid duplicates across orders.
-    final Map<String, OrderCartLine> merged = {};
-    for (final line in lines) {
-      final key = line.name.toLowerCase();
-      final existing = merged[key];
-      if (existing == null) {
-        merged[key] = line;
-      } else {
-        merged[key] = OrderCartLine(
-          name: existing.name,
-          quantity: existing.quantity + line.quantity,
-          unitPrice: existing.unitPrice > 0
-              ? existing.unitPrice
-              : line.unitPrice,
-        );
-      }
-    }
-    return merged.values.toList();
+    // Do not merge on the client; backend handles consolidation/updates.
+    return lines;
   }
 
   void _updateStatus(String status, TableEntity? table) {
@@ -167,109 +152,6 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
     _showMessage(isAppending ? 'Items added to order.' : 'Order placed.');
   }
 
-  void _showOrderItems(ActiveOrderEntity order) {
-    final theme = Theme.of(context);
-    final items = order.items;
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        final bottomInset = MediaQuery.of(sheetContext).viewInsets.bottom;
-        return SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomInset),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${order.type} • ${order.reference}',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            'Status: ${order.status}',
-                            style: theme.textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      '\$${order.amount.toStringAsFixed(2)}',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (items.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Text('No items found for this order.'),
-                  )
-                else
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 360),
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: items.length,
-                      separatorBuilder: (_, __) => const Divider(height: 16),
-                      itemBuilder: (context, index) {
-                        final item = items[index];
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item.name,
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(fontWeight: FontWeight.w600),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Qty: ${item.qty} • \$${item.unitPrice.toStringAsFixed(2)} each',
-                                    style: theme.textTheme.bodySmall,
-                                  ),
-                                  if ((item.notes ?? '').isNotEmpty)
-                                    Text(
-                                      item.notes!,
-                                      style: theme.textTheme.bodySmall,
-                                    ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '\$${item.lineTotal.toStringAsFixed(2)}',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   void _markFree(TableEntity? table) {
     if (table != null) {
       final cleared = table.copyWith(status: 'FREE', activeItems: const []);
@@ -284,12 +166,25 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
     _showMessage('Table marked free.');
   }
 
-  Future<void> _openCartSheet(String tableName, TableEntity? table) async {
-    final orders = context.read<TableOrderBloc>().state.activeOrders;
-    final lines = _cartLinesFromOrders(orders);
+  Future<void> _openCartSheet(
+    String tableName,
+    TableEntity? table,
+    ActiveOrderEntity? activeOrder,
+  ) async {
+    if (activeOrder == null) {
+      _showMessage('No active order to edit.');
+      return;
+    }
+    final orderId = int.tryParse(activeOrder.id);
+    if (orderId == null) {
+      _showMessage('Cannot open cart: invalid order id.');
+      return;
+    }
+    final lines = _cartLinesFromOrders([activeOrder]);
     await showOrderCartSheet(
       context,
       title: 'Table • $tableName',
+      orderId: orderId,
       lines: lines,
     );
   }
@@ -431,7 +326,8 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => _openCartSheet(tableName, table),
+                      onPressed: () =>
+                          _openCartSheet(tableName, table, activeOrder),
                       icon: const Icon(Icons.shopping_cart_outlined),
                       label: const Text('Cart'),
                     ),
@@ -511,7 +407,8 @@ class _TableOrderScreenState extends State<TableOrderScreen> {
                           ),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(16),
-                            onTap: () => _showOrderItems(order),
+                            onTap: () =>
+                                _openCartSheet(tableName, table, order),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Column(

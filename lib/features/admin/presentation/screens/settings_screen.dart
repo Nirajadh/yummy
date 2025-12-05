@@ -29,8 +29,8 @@ class SettingsScreen extends StatelessWidget {
                 onChanged: (_) {
                   Navigator.pop(sheetContext);
                   context.read<SettingsBloc>().add(
-                        const AppearanceChanged(ThemeMode.light),
-                      );
+                    const AppearanceChanged(ThemeMode.light),
+                  );
                 },
               ),
             ),
@@ -42,8 +42,8 @@ class SettingsScreen extends StatelessWidget {
                 onChanged: (_) {
                   Navigator.pop(sheetContext);
                   context.read<SettingsBloc>().add(
-                        const AppearanceChanged(ThemeMode.dark),
-                      );
+                    const AppearanceChanged(ThemeMode.dark),
+                  );
                 },
               ),
             ),
@@ -60,8 +60,9 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Settings')),
       body: BlocBuilder<SettingsBloc, SettingsState>(
         builder: (context, state) {
-          final appearanceLabel =
-              state.appearance == ThemeMode.dark ? 'Dark' : 'Light';
+          final appearanceLabel = state.appearance == ThemeMode.dark
+              ? 'Dark'
+              : 'Light';
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: [

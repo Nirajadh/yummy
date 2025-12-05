@@ -28,6 +28,11 @@ abstract interface class OrderRemoteDataSource {
     required List<OrderItemInput> items,
   });
 
+  Future<OrderModel> updateOrderItems({
+    required int orderId,
+    required List<OrderItemInput> items,
+  });
+
   Future<OrderListModel> listOrders({
     required int restaurantId,
     String? status,
@@ -70,7 +75,10 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
 
     try {
       log('Creating order payload: $payload');
-      final response = await appApis.sendRequest.post('/orders/', data: payload);
+      final response = await appApis.sendRequest.post(
+        '/orders/',
+        data: payload,
+      );
       final status = response.statusCode ?? 0;
       if (status >= 200 && status < 300 && response.data is Map) {
         final map = response.data as Map<String, dynamic>;
@@ -104,14 +112,12 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
     required int orderId,
     required List<OrderItemInput> items,
   }) async {
-    final payload = {
-      'items': items.map((e) => e.toJson()).toList(),
-    };
+    final payload = {'items': items.map((e) => e.toJson()).toList()};
 
     try {
       log('Adding items to order $orderId payload: $payload');
       final response = await appApis.sendRequest.post(
-        '/orders/$orderId/items',
+        '/orders/$orderId/items/bulk-add',
         data: payload,
       );
       final status = response.statusCode ?? 0;
@@ -133,6 +139,47 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
           : (resp?.toString().isNotEmpty == true ? resp.toString() : e.message);
       log(
         'Add items failed: orderId=$orderId status=${e.response?.statusCode} body=$resp',
+      );
+      throw ServerException(message?.toString() ?? 'Request failed');
+    } on SocketException {
+      throw const NetworkException('No Internet Connection');
+    } on FormatException {
+      throw const DataParsingException('Bad response format');
+    }
+  }
+
+  @override
+  Future<OrderModel> updateOrderItems({
+    required int orderId,
+    required List<OrderItemInput> items,
+  }) async {
+    final payload = {'items': items.map((e) => e.toJson()).toList()};
+
+    try {
+      log('Updating items for order $orderId payload: $payload');
+      final response = await appApis.sendRequest.post(
+        '/orders/$orderId/items/bulk-update',
+        data: payload,
+      );
+      final status = response.statusCode ?? 0;
+      if (status >= 200 && status < 300 && response.data is Map) {
+        final map = response.data as Map<String, dynamic>;
+        final data = map['data'];
+        if (data is Map<String, dynamic>) {
+          return OrderModel.fromJson(data);
+        }
+        throw const ServerException('Missing order data');
+      }
+      throw ServerException(
+        'Unexpected error: ${response.statusCode ?? 'no status'}',
+      );
+    } on DioException catch (e) {
+      final resp = e.response?.data;
+      final message = resp is Map<String, dynamic>
+          ? (resp['detail'] ?? resp['message'] ?? 'Request failed')
+          : (resp?.toString().isNotEmpty == true ? resp.toString() : e.message);
+      log(
+        'Update items failed: orderId=$orderId status=${e.response?.statusCode} body=$resp',
       );
       throw ServerException(message?.toString() ?? 'Request failed');
     } on SocketException {

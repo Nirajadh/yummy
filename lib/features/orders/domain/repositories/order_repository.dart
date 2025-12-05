@@ -23,6 +23,11 @@ abstract interface class OrderRepository {
     required List<OrderItemInput> items,
   });
 
+  Future<Either<Failure, OrderEntity>> updateOrderItems({
+    required int orderId,
+    required List<OrderItemInput> items,
+  });
+
   Future<Either<Failure, List<ActiveOrderEntity>>> listOrders({
     required int restaurantId,
     String? status,

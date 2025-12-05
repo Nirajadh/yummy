@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/features/admin/presentation/screens/admin_dashboard_screen.dart';
-import 'package:yummy/features/groups/presentation/screens/groups_screen.dart';
 import 'package:yummy/features/orders/presentation/screens/orders_screen.dart';
 import 'package:yummy/features/tables/presentation/screens/tables_screen.dart';
 import 'package:yummy/features/tables/presentation/bloc/tables/tables_bloc.dart';
@@ -31,7 +30,6 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
         allowManageTables: false,
         loadOnInit: false,
       ),
-      const GroupsScreen(),
     ];
   }
 
@@ -60,11 +58,6 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
             icon: Icon(Icons.table_bar_outlined),
             selectedIcon: Icon(Icons.table_bar),
             label: 'Tables',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups),
-            label: 'Groups',
           ),
         ],
         onDestinationSelected: (value) {
