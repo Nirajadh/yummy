@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -70,6 +71,12 @@ class OrderScreen extends StatefulWidget {
 class _OrderScreenState extends State<OrderScreen> {
   OrderScreenArgs _args = const OrderScreenArgs();
   bool _loadedArgs = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureMenuLoaded());
+  }
 
   @override
   void didChangeDependencies() {
@@ -151,6 +158,14 @@ class _OrderScreenState extends State<OrderScreen> {
 
   void _showAction(String action) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(action)));
+  }
+
+  void _ensureMenuLoaded() {
+    final bloc = context.read<MenuBloc>();
+    if (bloc.state.status == MenuStatus.initial ||
+        bloc.state.status == MenuStatus.failure) {
+      bloc.add(const MenuRequested());
+    }
   }
 
   List<OrderItemInput> _toOrderItems(OrderCartState cartState) {
@@ -366,12 +381,17 @@ class _OrderScreenState extends State<OrderScreen> {
                                               12,
                                             ),
                                             child: item.imageUrl.isNotEmpty
-                                                ? Image.network(
-                                                    item.imageUrl,
+                                                ? CachedNetworkImage(
+                                                    imageUrl: item.imageUrl,
                                                     fit: BoxFit.cover,
                                                     width: double.infinity,
-                                                    errorBuilder: (_, __, ___) =>
+                                                    memCacheHeight: 900,
+                                                    memCacheWidth: 900,
+                                                    placeholder: (_, __) =>
                                                         _placeholderIcon(),
+                                                    errorWidget:
+                                                        (_, __, ___) =>
+                                                            _placeholderIcon(),
                                                   )
                                                 : _placeholderIcon(),
                                           ),

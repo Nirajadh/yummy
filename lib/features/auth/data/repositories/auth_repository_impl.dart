@@ -117,6 +117,35 @@ class AuthRepositoryImpl implements AuthRepository {
         confirmPassword: confirmPassword,
       );
       final entity = AdminRegisterMapper.toEntity(response);
+      return Right(entity);
+    } on ServerException catch (e) {
+      return Left(Failure(e.message));
+    } on NetworkException catch (e) {
+      return Left(Failure(e.message));
+    } on DataParsingException catch (e) {
+      return Left(Failure(e.message));
+    } catch (e) {
+      return Left(Failure('An unexpected error occurred: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, AdminRegisterEntity>> verifyAdminRegister({
+    required String name,
+    required String email,
+    required String password,
+    required String confirmPassword,
+    required String otp,
+  }) async {
+    try {
+      final response = await remoteDataSource.verifyAdminRegister(
+        name: name,
+        email: email,
+        password: password,
+        confirmPassword: confirmPassword,
+        otp: otp,
+      );
+      final entity = AdminRegisterMapper.toEntity(response);
       if (entity.accessToken.isNotEmpty) {
         await SecureStorageService().setValue(
           key: 'token',
@@ -127,8 +156,8 @@ class AuthRepositoryImpl implements AuthRepository {
           key: 'token_issued_at',
           value: DateTime.now().toIso8601String(),
         );
-        // Admin registration response does not include refresh_token; user can
-        // obtain one on first login.
+        // Admin registration verify response does not include refresh_token;
+        // user can obtain one on first login.
         await SecureStorageService().setValue(key: 'role', value: entity.role);
         await SecureStorageService().setValue(
           key: 'email',
@@ -139,6 +168,27 @@ class AuthRepositoryImpl implements AuthRepository {
           value: entity.name,
         );
       }
+      return Right(entity);
+    } on ServerException catch (e) {
+      return Left(Failure(e.message));
+    } on NetworkException catch (e) {
+      return Left(Failure(e.message));
+    } on DataParsingException catch (e) {
+      return Left(Failure(e.message));
+    } catch (e) {
+      return Left(Failure('An unexpected error occurred: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, AdminRegisterEntity>> resendAdminRegisterOtp({
+    required String email,
+  }) async {
+    try {
+      final response = await remoteDataSource.resendAdminRegisterOtp(
+        email: email,
+      );
+      final entity = AdminRegisterMapper.toEntity(response);
       return Right(entity);
     } on ServerException catch (e) {
       return Left(Failure(e.message));

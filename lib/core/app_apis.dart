@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'package:yummy/core/services/interceptor_policies.dart';
 import 'package:yummy/core/services/shared_prefrences.dart';
@@ -60,7 +61,9 @@ class AppApis {
         },
       ),
     );
-    _dio.interceptors.add(PrettyDioLogger());
+    if (kDebugMode) {
+      _dio.interceptors.add(PrettyDioLogger());
+    }
   }
 
   Future<void> _initToken() async {
@@ -229,6 +232,8 @@ class AuthApis {
   // Trailing slash avoids 307 redirect from the backend.
   String get register => '/users/';
   String get registerAdmin => '/users/admin/register';
+  String get adminRegisterVerify => '/users/admin/register/verify';
+  String get adminRegisterResend => '/users/admin/register/resend';
   String userById(String id) => '/users/$id';
   String get login => '/auth/login';
   String get refresh => '/auth/refresh';

@@ -494,20 +494,20 @@ const _foodSpots = [
   _FoodSpot(dx: 0.40, dy: 0.58, iconIndex: 9, rotation: -0.06),
   _FoodSpot(dx: 0.60, dy: 0.56, iconIndex: 10, rotation: 0.1),
   _FoodSpot(dx: 0.82, dy: 0.58, iconIndex: 11, rotation: -0.08),
-  _FoodSpot(dx: 0.06, dy: 0.70, iconIndex: 12, rotation: 0.06),
-  _FoodSpot(dx: 0.26, dy: 0.68, iconIndex: 13, rotation: -0.05),
-  _FoodSpot(dx: 0.44, dy: 0.70, iconIndex: 14, rotation: 0.1),
+  _FoodSpot(dx: 0.02, dy: 0.68, iconIndex: 12, rotation: 0.06),
+  _FoodSpot(dx: 0.40, dy: 0.93, iconIndex: 13, rotation: -0.05),
+
   _FoodSpot(dx: 0.64, dy: 0.68, iconIndex: 15, rotation: -0.07),
-  _FoodSpot(dx: 0.86, dy: 0.66, iconIndex: 16, rotation: 0.08),
-  _FoodSpot(dx: 0.14, dy: 0.80, iconIndex: 17, rotation: -0.04),
-  _FoodSpot(dx: 0.34, dy: 0.82, iconIndex: 18, rotation: 0.09),
-  _FoodSpot(dx: 0.56, dy: 0.80, iconIndex: 19, rotation: -0.08),
-  _FoodSpot(dx: 0.76, dy: 0.78, iconIndex: 20, rotation: 0.07),
-  _FoodSpot(dx: 0.92, dy: 0.76, iconIndex: 21, rotation: -0.06),
-  _FoodSpot(dx: 0.22, dy: 0.92, iconIndex: 22, rotation: 0.05),
-  _FoodSpot(dx: 0.46, dy: 0.90, iconIndex: 23, rotation: -0.09),
-  _FoodSpot(dx: 0.70, dy: 0.92, iconIndex: 24, rotation: 0.1),
-  _FoodSpot(dx: 0.90, dy: 0.90, iconIndex: 25, rotation: -0.08),
+
+  _FoodSpot(dx: 0.14, dy: 0.77, iconIndex: 17, rotation: -0.04),
+  _FoodSpot(dx: 0.38, dy: 0.72, iconIndex: 18, rotation: 0.09),
+  _FoodSpot(dx: 0.63, dy: 0.78, iconIndex: 19, rotation: -0.08),
+  _FoodSpot(dx: 0.82, dy: 0.70, iconIndex: 20, rotation: 0.07),
+
+  _FoodSpot(dx: 0.08, dy: 0.89, iconIndex: 22, rotation: 0.05),
+  _FoodSpot(dx: 0.35, dy: 0.83, iconIndex: 23, rotation: -0.09),
+  _FoodSpot(dx: 0.64, dy: 0.92, iconIndex: 24, rotation: 0.1),
+  _FoodSpot(dx: 0.90, dy: 0.85, iconIndex: 25, rotation: -0.08),
 ];
 
 class FieldLabel extends StatelessWidget {

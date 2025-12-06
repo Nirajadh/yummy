@@ -23,6 +23,16 @@ abstract interface class AuthRepository {
     required String password,
     required String confirmPassword,
   });
+  Future<Either<Failure, AdminRegisterEntity>> verifyAdminRegister({
+    required String name,
+    required String email,
+    required String password,
+    required String confirmPassword,
+    required String otp,
+  });
+  Future<Either<Failure, AdminRegisterEntity>> resendAdminRegisterOtp({
+    required String email,
+  });
   Future<Either<Failure, List<UserEntity>>> getAllUsers();
   Future<Either<Failure, void>> logout();
 }

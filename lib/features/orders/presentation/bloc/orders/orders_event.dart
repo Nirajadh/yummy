@@ -14,3 +14,7 @@ class OrdersRequested extends OrdersEvent {
   @override
   List<Object?> get props => [filter];
 }
+
+class OrdersNextPage extends OrdersEvent {
+  const OrdersNextPage();
+}

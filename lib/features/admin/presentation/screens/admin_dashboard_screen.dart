@@ -36,6 +36,11 @@ class AdminDashboardScreen extends StatelessWidget {
           actions: _actions(context),
           automaticallyImplyLeading: false,
           onActiveOrdersTap: onNavigateToOrders,
+          onRefresh: () async {
+            context
+                .read<AdminDashboardBloc>()
+                .add(const AdminDashboardRefreshed());
+          },
           onMetricTap: (context, metric) {
             switch (metric.title) {
               case 'History':

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/core/services/shared_prefrences.dart';
+import 'package:yummy/features/admin/presentation/bloc/admin_dashboard/admin_dashboard_bloc.dart';
 import 'package:yummy/features/admin/presentation/screens/admin_dashboard_shell.dart';
 import 'package:yummy/features/admin/presentation/screens/settings_screen.dart';
 
 import 'package:yummy/features/auth/presentation/screens/auth_screen.dart';
+import 'package:yummy/features/auth/presentation/screens/admin_otp_screen.dart';
 import 'package:yummy/features/auth/presentation/screens/user_profile_screen.dart';
 import 'package:yummy/features/finance/presentation/screens/expenses_screen.dart';
 import 'package:yummy/features/finance/presentation/screens/income_screen.dart';
@@ -14,8 +16,10 @@ import 'package:yummy/features/groups/presentation/screens/group_create_screen.d
 import 'package:yummy/features/groups/presentation/screens/groups_screen.dart';
 import 'package:yummy/features/item_category/presentation/bloc/item_category_bloc.dart';
 import 'package:yummy/features/menu/presentation/bloc/menu_item_form_bloc.dart';
+import 'package:yummy/features/kitchen/presentation/bloc/kitchen_kot/kitchen_kot_bloc.dart';
 import 'package:yummy/features/kitchen/presentation/screens/kitchen_dashboard_screen.dart';
 import 'package:yummy/features/item_category/presentation/screens/item_categories_screen.dart';
+import 'package:yummy/features/menu/presentation/bloc/menu/menu_bloc.dart';
 import 'package:yummy/features/restaurant/presentation/restaurant_details_screen.dart';
 
 import 'package:yummy/features/restaurant/presentation/screens/restaurant_hub_screen.dart';
@@ -27,6 +31,7 @@ import 'package:yummy/features/orders/domain/entities/bill_preview.dart';
 import 'package:yummy/features/orders/presentation/bloc/order_cart/order_cart_bloc.dart';
 import 'package:yummy/features/orders/presentation/bloc/create_order/create_order_bloc.dart';
 import 'package:yummy/features/orders/presentation/bloc/add_order_items/add_order_items_bloc.dart';
+import 'package:yummy/features/orders/presentation/bloc/orders/orders_bloc.dart';
 import 'package:yummy/features/orders/presentation/screens/bill_preview_screen.dart';
 import 'package:yummy/features/orders/presentation/screens/group_order_screen.dart';
 import 'package:yummy/features/orders/presentation/screens/order_history_screen.dart';
@@ -34,6 +39,8 @@ import 'package:yummy/features/orders/presentation/screens/order_screen.dart';
 import 'package:yummy/features/orders/presentation/screens/orders_screen.dart';
 import 'package:yummy/features/orders/presentation/screens/pickup_order_screen.dart';
 import 'package:yummy/features/orders/presentation/screens/quick_billing_screen.dart';
+import 'package:yummy/features/groups/presentation/bloc/groups/groups_bloc.dart';
+import 'package:yummy/features/staff_portal/presentation/bloc/staff_dashboard/staff_dashboard_bloc.dart';
 import 'package:yummy/features/tables/presentation/bloc/table_order/table_order_bloc.dart';
 import 'package:yummy/features/staff/presentation/screens/staff_management_screen.dart';
 import 'package:yummy/features/staff_portal/presentation/screens/staff_dashboard_shell.dart';
@@ -41,6 +48,7 @@ import 'package:yummy/features/tables/presentation/navigation/table_order_args.d
 import 'package:yummy/features/tables/presentation/navigation/tables_screen_args.dart';
 import 'package:yummy/features/tables/presentation/screens/table_order_screen.dart';
 import 'package:yummy/features/tables/presentation/screens/tables_screen.dart';
+import 'package:yummy/features/tables/presentation/bloc/tables/tables_bloc.dart';
 
 /// Centralized route generator to keep main.dart lean.
 class AppRouter {
@@ -75,15 +83,46 @@ class AppRouter {
       case '/restaurant':
         return MaterialPageRoute(builder: (_) => const RestaurantHubScreen());
       case '/admin-dashboard':
-        return MaterialPageRoute(builder: (_) => const AdminDashboardShell());
+        return MaterialPageRoute(
+          builder: (_) => MultiBlocProvider(
+            providers: [
+              BlocProvider(
+                create: (_) =>
+                    sl<AdminDashboardBloc>()..add(const AdminDashboardStarted()),
+              ),
+              BlocProvider(create: (_) => sl<OrdersBloc>()),
+              BlocProvider(create: (_) => sl<TablesBloc>()),
+            ],
+            child: const AdminDashboardShell(),
+          ),
+        );
       case '/staff-dashboard':
-        return MaterialPageRoute(builder: (_) => const StaffDashboardShell());
+        return MaterialPageRoute(
+          builder: (_) => MultiBlocProvider(
+            providers: [
+              BlocProvider(
+                create: (_) =>
+                    sl<StaffDashboardBloc>()..add(const StaffDashboardStarted()),
+              ),
+              BlocProvider(create: (_) => sl<OrdersBloc>()),
+            ],
+            child: const StaffDashboardShell(),
+          ),
+        );
       case '/kitchen-dashboard':
         return MaterialPageRoute(
-          builder: (_) => const KitchenDashboardScreen(),
+          builder: (_) => BlocProvider(
+            create: (_) => sl<KitchenKotBloc>()..add(const KitchenKotRequested()),
+            child: const KitchenDashboardScreen(),
+          ),
         );
       case '/new-order':
-        return MaterialPageRoute(builder: (_) => const OrdersScreen());
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (_) => sl<OrdersBloc>(),
+            child: const OrdersScreen(),
+          ),
+        );
       case '/tables':
         final args = settings.arguments;
         final allowManageTables = args is TablesScreenArgs
@@ -93,27 +132,40 @@ class AppRouter {
             ? args.dashboardRoute
             : '/admin-dashboard';
         return MaterialPageRoute(
-          builder: (_) => TablesScreen(
-            allowManageTables: allowManageTables,
-            dashboardRoute: dashboardRoute,
+          builder: (_) => BlocProvider(
+            create: (_) => sl<TablesBloc>(),
+            child: TablesScreen(
+              allowManageTables: allowManageTables,
+              dashboardRoute: dashboardRoute,
+            ),
           ),
         );
       case '/tables-manage':
         return MaterialPageRoute(
-          builder: (_) => const TablesScreen(
-            allowManageTables: true,
-            dashboardRoute: '/admin-dashboard',
+          builder: (_) => BlocProvider(
+            create: (_) => sl<TablesBloc>(),
+            child: const TablesScreen(
+              allowManageTables: true,
+              dashboardRoute: '/admin-dashboard',
+            ),
           ),
         );
       case '/table-order':
         return MaterialPageRoute(
           builder: (_) {
             final args = settings.arguments;
-            return BlocProvider(
-              create: (_) => TableOrderBloc(
-                getActiveOrders: sl(),
-                restaurantDetailsService: sl(),
-              ),
+            return MultiBlocProvider(
+              providers: [
+                BlocProvider(
+                  create: (_) => TableOrderBloc(
+                    getActiveOrders: sl(),
+                    restaurantDetailsService: sl(),
+                  ),
+                ),
+                BlocProvider(
+                  create: (_) => sl<TablesBloc>()..add(const TablesRequested()),
+                ),
+              ],
               child: TableOrderScreen(
                 args: args is TableOrderArgs ? args : null,
               ),
@@ -121,9 +173,19 @@ class AppRouter {
           },
         );
       case '/groups':
-        return MaterialPageRoute(builder: (_) => const GroupsScreen());
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (_) => sl<GroupsBloc>()..add(const GroupsRequested()),
+            child: const GroupsScreen(),
+          ),
+        );
       case '/group-create':
-        return MaterialPageRoute(builder: (_) => const GroupCreateScreen());
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (_) => sl<GroupsBloc>()..add(const GroupsRequested()),
+            child: const GroupCreateScreen(),
+          ),
+        );
       case '/group-order':
         return MaterialPageRoute(builder: (_) => const GroupOrderScreen());
       case '/pickup-order':
@@ -135,6 +197,7 @@ class AppRouter {
           settings: settings,
           builder: (_) => MultiBlocProvider(
             providers: [
+              BlocProvider(create: (_) => sl<MenuBloc>()),
               BlocProvider(create: (_) => OrderCartBloc()),
               BlocProvider(create: (_) => sl<CreateOrderBloc>()),
               BlocProvider(create: (_) => sl<AddOrderItemsBloc>()),
@@ -162,11 +225,17 @@ class AppRouter {
           },
         );
       case '/menu-management':
-        return MaterialPageRoute(builder: (_) => const MenuManagementScreen());
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (_) => sl<MenuBloc>(),
+            child: const MenuManagementScreen(),
+          ),
+        );
       case '/menu-add':
         return MaterialPageRoute(
           builder: (_) => MultiBlocProvider(
             providers: [
+              BlocProvider(create: (_) => sl<MenuBloc>()),
               BlocProvider(create: (_) => sl<ItemCategoryBloc>()),
               BlocProvider(create: (_) => MenuItemFormBloc()),
             ],
@@ -177,6 +246,7 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => MultiBlocProvider(
             providers: [
+              BlocProvider(create: (_) => sl<MenuBloc>()),
               BlocProvider(create: (_) => sl<ItemCategoryBloc>()),
               BlocProvider(create: (_) => MenuItemFormBloc()),
             ],
@@ -191,17 +261,38 @@ class AppRouter {
           ),
         );
       case '/expenses':
-        return MaterialPageRoute(builder: (_) => const ExpensesScreen());
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (_) =>
+                sl<AdminDashboardBloc>()..add(const AdminDashboardStarted()),
+            child: const ExpensesScreen(),
+          ),
+        );
       case '/purchase':
         return MaterialPageRoute(builder: (_) => const PurchaseScreen());
       case '/income':
         return MaterialPageRoute(builder: (_) => const IncomeScreen());
       case '/order-history':
-        return MaterialPageRoute(builder: (_) => const OrderHistoryScreen());
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (_) =>
+                sl<AdminDashboardBloc>()..add(const AdminDashboardStarted()),
+            child: const OrderHistoryScreen(),
+          ),
+        );
       case '/reports':
         return MaterialPageRoute(builder: (_) => const ReportsScreen());
       case '/settings':
         return MaterialPageRoute(builder: (_) => const SettingsScreen());
+      case '/admin-otp':
+        return MaterialPageRoute(
+          builder: (_) {
+            final args = settings.arguments;
+            return AdminOtpScreen(
+              args: args is AdminOtpScreenArgs ? args : null,
+            );
+          },
+        );
 
       case '/staff-management':
         return MaterialPageRoute(builder: (_) => const StaffManagementScreen());

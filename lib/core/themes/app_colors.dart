@@ -5,7 +5,8 @@ class AppColors {
   static const Color primary = Color(0xFFF4511E);
   static const Color primaryLight = Color(0xFFFF7043);
   static const Color primaryDark = Color(0xFFD84315);
-  static const Color accentYellow = Color(0xFFFFD54F);
+  // Minimal, premium secondary accent (slate blue‑grey)
+  static const Color accentYellow = Color(0xFF64748B);
 
   static const Color successGreen = Color(0xFF2E7D32);
 

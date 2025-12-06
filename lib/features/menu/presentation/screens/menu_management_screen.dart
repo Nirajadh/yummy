@@ -83,18 +83,23 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.edit),
-                          onPressed: () => Navigator.pushNamed(
-                            context,
-                            '/menu-edit',
-                            arguments: MenuItemFormArgs(
-                              id: item.id,
-                              name: item.name,
-                              categoryId: item.itemCategoryId,
-                              price: item.price,
-                              description: item.description,
-                              imageUrl: item.imageUrl,
-                            ),
-                          ),
+                          onPressed: () async {
+                            await Navigator.pushNamed(
+                              context,
+                              '/menu-edit',
+                              arguments: MenuItemFormArgs(
+                                id: item.id,
+                                name: item.name,
+                                categoryId: item.itemCategoryId,
+                                price: item.price,
+                                description: item.description,
+                                imageUrl: item.imageUrl,
+                              ),
+                            );
+                            if (context.mounted) {
+                              context.read<MenuBloc>().add(const MenuRequested());
+                            }
+                          },
                         ),
                         state.deletingId == item.id
                             ? const SizedBox(
@@ -121,7 +126,12 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'menu-fab',
-        onPressed: () => Navigator.pushNamed(context, '/menu-add'),
+        onPressed: () async {
+          await Navigator.pushNamed(context, '/menu-add');
+          if (context.mounted) {
+            context.read<MenuBloc>().add(const MenuRequested());
+          }
+        },
         icon: const Icon(Icons.add),
         label: const Text('Add Item'),
       ),

@@ -57,12 +57,12 @@ class OrderModel {
     );
     status ??= OrderStatus.pending;
 
-    double _parseDouble(dynamic value) {
+    double parseDouble(dynamic value) {
       if (value is num) return value.toDouble();
       return double.tryParse(value?.toString() ?? '') ?? 0;
     }
 
-    int? _parseInt(dynamic value) {
+    int? parseInt(dynamic value) {
       if (value == null) return null;
       if (value is num) return value.toInt();
       return int.tryParse(value.toString());
@@ -76,8 +76,8 @@ class OrderModel {
       json['channel']?.toString().toLowerCase(),
     );
     if (channel == null) {
-      final hasTable = _parseInt(json['table_id']) != null;
-      final hasGroup = _parseInt(json['group_id']) != null;
+      final hasTable = parseInt(json['table_id']) != null;
+      final hasGroup = parseInt(json['group_id']) != null;
       channel = hasTable
           ? OrderChannel.table
           : hasGroup
@@ -86,20 +86,20 @@ class OrderModel {
     }
 
     return OrderModel(
-      id: _parseInt(json['id']) ?? 0,
-      restaurantId: _parseInt(json['restaurant_id']) ?? 0,
+      id: parseInt(json['id']) ?? 0,
+      restaurantId: parseInt(json['restaurant_id']) ?? 0,
       channel: channel,
-      tableId: _parseInt(json['table_id']),
+      tableId: parseInt(json['table_id']),
       tableName: json['table_name']?.toString(),
-      groupId: _parseInt(json['group_id']),
+      groupId: parseInt(json['group_id']),
       customerName: json['customer_name']?.toString(),
       customerPhone: json['customer_phone']?.toString(),
       status: status,
-      subtotal: _parseDouble(json['subtotal']),
-      taxTotal: _parseDouble(json['tax_total']),
-      serviceCharge: _parseDouble(json['service_charge']),
-      discountTotal: _parseDouble(json['discount_total']),
-      grandTotal: _parseDouble(json['grand_total']),
+      subtotal: parseDouble(json['subtotal']),
+      taxTotal: parseDouble(json['tax_total']),
+      serviceCharge: parseDouble(json['service_charge']),
+      discountTotal: parseDouble(json['discount_total']),
+      grandTotal: parseDouble(json['grand_total']),
       notes: json['notes']?.toString(),
       createdAt: json['created_at']?.toString() ?? '',
       updatedAt: json['updated_at']?.toString() ?? '',
@@ -173,25 +173,25 @@ class OrderItemModel {
   });
 
   factory OrderItemModel.fromJson(Map<String, dynamic> json) {
-    double _parseDouble(dynamic value) {
+    double parseDouble(dynamic value) {
       if (value is num) return value.toDouble();
       return double.tryParse(value?.toString() ?? '') ?? 0;
     }
 
-    int? _parseInt(dynamic value) {
+    int? parseInt(dynamic value) {
       if (value == null) return null;
       if (value is num) return value.toInt();
       return int.tryParse(value.toString());
     }
 
     return OrderItemModel(
-      id: _parseInt(json['id']) ?? 0,
-      menuItemId: _parseInt(json['menu_item_id']),
+      id: parseInt(json['id']) ?? 0,
+      menuItemId: parseInt(json['menu_item_id']),
       name: json['name_snapshot']?.toString() ?? '',
       categoryName: json['category_name_snapshot']?.toString(),
-      unitPrice: _parseDouble(json['unit_price']),
-      qty: _parseInt(json['qty']) ?? 0,
-      lineTotal: _parseDouble(json['line_total']),
+      unitPrice: parseDouble(json['unit_price']),
+      qty: parseInt(json['qty']) ?? 0,
+      lineTotal: parseDouble(json['line_total']),
       notes: json['notes']?.toString(),
     );
   }
@@ -241,12 +241,12 @@ class OrderPaymentModel {
   });
 
   factory OrderPaymentModel.fromJson(Map<String, dynamic> json) {
-    double _parseDouble(dynamic value) {
+    double parseDouble(dynamic value) {
       if (value is num) return value.toDouble();
       return double.tryParse(value?.toString() ?? '') ?? 0;
     }
 
-    int _parseInt(dynamic value) {
+    int parseInt(dynamic value) {
       if (value is num) return value.toInt();
       return int.tryParse(value.toString()) ?? 0;
     }
@@ -262,9 +262,9 @@ class OrderPaymentModel {
     status ??= PaymentStatus.success;
 
     return OrderPaymentModel(
-      id: _parseInt(json['id']),
+      id: parseInt(json['id']),
       method: method,
-      amount: _parseDouble(json['amount']),
+      amount: parseDouble(json['amount']),
       reference: json['reference']?.toString(),
       status: status,
       createdAt: json['created_at']?.toString() ?? '',

@@ -25,6 +25,16 @@ abstract interface class AuthRemoteDataSource {
     required String password,
     required String confirmPassword,
   });
+  Future<AdminRegisterModel> verifyAdminRegister({
+    required String name,
+    required String email,
+    required String password,
+    required String confirmPassword,
+    required String otp,
+  });
+  Future<AdminRegisterModel> resendAdminRegisterOtp({
+    required String email,
+  });
   Future<List<UserModel>> getAllUsers();
   Future<void> logout({String? refreshToken});
 }
@@ -230,6 +240,54 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
+  Future<AdminRegisterModel> resendAdminRegisterOtp({
+    required String email,
+  }) async {
+    try {
+      final response = await appApis.sendRequest.post(
+        AppApi.authApis.adminRegisterResend,
+        data: {'email': email},
+      );
+
+      final status = response.statusCode ?? 0;
+      if (status >= 200 &&
+          status < 300 &&
+          response.data is Map<String, dynamic>) {
+        final map = response.data as Map<String, dynamic>;
+        return AdminRegisterModel.fromJson(map);
+      }
+
+      throw ServerException(
+        'Unexpected error: ${response.statusCode ?? 'no status'}',
+      );
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 422 && e.response?.data != null) {
+        final errorResponse = ErrorResponseMapper.toEntity(
+          ErrorResponseModel.fromJson(e.response!.data),
+        );
+        final topError = errorResponse.errors.join('\n');
+        throw ServerException(topError);
+      }
+
+      if (e.response?.data is Map<String, dynamic>) {
+        final data = e.response!.data as Map<String, dynamic>;
+        if (data['message'] != null) {
+          throw ServerException(data['message'].toString());
+        }
+        if (data['detail'] != null) {
+          throw ServerException(data['detail'].toString());
+        }
+      }
+
+      throw ServerException('Network error occurred');
+    } on SocketException {
+      throw const NetworkException('No Internet Connection');
+    } on FormatException {
+      throw const DataParsingException('Bad response format');
+    }
+  }
+
+  @override
   Future<void> logout({String? refreshToken}) async {
     try {
       await appApis.sendRequest.post(
@@ -245,6 +303,64 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
                 'Logout failed')
           : e.message;
       throw ServerException(message?.toString() ?? 'Logout failed');
+    } on SocketException {
+      throw const NetworkException('No Internet Connection');
+    } on FormatException {
+      throw const DataParsingException('Bad response format');
+    }
+  }
+
+  @override
+  Future<AdminRegisterModel> verifyAdminRegister({
+    required String name,
+    required String email,
+    required String password,
+    required String confirmPassword,
+    required String otp,
+  }) async {
+    try {
+      final response = await appApis.sendRequest.post(
+        AppApi.authApis.adminRegisterVerify,
+        data: {
+          'name': name,
+          'email': email,
+          'password': password,
+          'confirm_password': confirmPassword,
+          'otp': otp,
+        },
+      );
+
+      final status = response.statusCode ?? 0;
+      if (status >= 200 &&
+          status < 300 &&
+          response.data is Map<String, dynamic>) {
+        final map = response.data as Map<String, dynamic>;
+        return AdminRegisterModel.fromJson(map);
+      }
+
+      throw ServerException(
+        'Unexpected error: ${response.statusCode ?? 'no status'}',
+      );
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 422 && e.response?.data != null) {
+        final errorResponse = ErrorResponseMapper.toEntity(
+          ErrorResponseModel.fromJson(e.response!.data),
+        );
+        final topError = errorResponse.errors.join('\n');
+        throw ServerException(topError);
+      }
+
+      if (e.response?.data is Map<String, dynamic>) {
+        final data = e.response!.data as Map<String, dynamic>;
+        if (data['message'] != null) {
+          throw ServerException(data['message'].toString());
+        }
+        if (data['detail'] != null) {
+          throw ServerException(data['detail'].toString());
+        }
+      }
+
+      throw ServerException('Network error occurred');
     } on SocketException {
       throw const NetworkException('No Internet Connection');
     } on FormatException {

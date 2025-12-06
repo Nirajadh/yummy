@@ -18,37 +18,29 @@ class SettingsScreen extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (sheetContext) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('Light'),
-              leading: Radio<ThemeMode>(
+        return RadioGroup<ThemeMode>(
+          groupValue: current,
+          onChanged: (mode) {
+            if (mode == null) return;
+            Navigator.pop(sheetContext);
+            context.read<SettingsBloc>().add(AppearanceChanged(mode));
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              RadioListTile<ThemeMode>(
+                title: Text('Light'),
                 value: ThemeMode.light,
-                groupValue: current,
-                onChanged: (_) {
-                  Navigator.pop(sheetContext);
-                  context.read<SettingsBloc>().add(
-                    const AppearanceChanged(ThemeMode.light),
-                  );
-                },
+                controlAffinity: ListTileControlAffinity.leading,
               ),
-            ),
-            ListTile(
-              title: const Text('Dark'),
-              leading: Radio<ThemeMode>(
+              RadioListTile<ThemeMode>(
+                title: Text('Dark'),
                 value: ThemeMode.dark,
-                groupValue: current,
-                onChanged: (_) {
-                  Navigator.pop(sheetContext);
-                  context.read<SettingsBloc>().add(
-                    const AppearanceChanged(ThemeMode.dark),
-                  );
-                },
+                controlAffinity: ListTileControlAffinity.leading,
               ),
-            ),
-            const SizedBox(height: 8),
-          ],
+              SizedBox(height: 8),
+            ],
+          ),
         );
       },
     );

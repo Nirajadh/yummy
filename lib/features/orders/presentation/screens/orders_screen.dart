@@ -27,12 +27,21 @@ class OrdersScreen extends StatefulWidget {
 class _OrdersScreenState extends State<OrdersScreen> {
   static const _filters = ['All', 'Table', 'Group', 'Pickup', 'Quick Billing'];
   String _selectedFilter = 'All';
+  late final ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController()..addListener(_onScroll);
     // Kick off initial fetch after the first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) => _fetchOrders());
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchOrders() async {
@@ -42,7 +51,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
         filter: _selectedFilter == 'All' ? null : _selectedFilter,
       ),
     );
-    // Wait for the next non-loading state so pull-to-refresh completes.
     await bloc.stream.firstWhere(
       (state) => state.status != OrdersStatus.loading,
     );
@@ -55,16 +63,21 @@ class _OrdersScreenState extends State<OrdersScreen> {
     Navigator.pushNamedAndRemoveUntil(context, target, (route) => false);
   }
 
-  List<ActiveOrderEntity> _filteredOrders(List<ActiveOrderEntity> source) {
-    if (_selectedFilter == 'All') return List.of(source);
-    return source.where((order) => order.type == _selectedFilter).toList();
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final state = context.read<OrdersBloc>().state;
+    if (state.status == OrdersStatus.loading) return;
+    final max = _scrollController.position.maxScrollExtent;
+    final offset = _scrollController.offset;
+    if (offset >= max - 200) {
+      context.read<OrdersBloc>().add(const OrdersNextPage());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final ordersState = context.watch<OrdersBloc>().state;
     final allOrders = ordersState.orders;
-    final filteredOrders = _filteredOrders(allOrders);
     final theme = Theme.of(context);
     final pendingPayments = allOrders
         .where((order) => order.status.toLowerCase().contains('pending'))
@@ -90,80 +103,127 @@ class _OrdersScreenState extends State<OrdersScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _fetchOrders,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+        child: CustomScrollView(
+          controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            _OrdersSummary(
-              activeCount: allOrders.length,
-              pendingBilling: pendingPayments,
-              totalValue: totalValue,
-            ),
-            const SizedBox(height: 24),
-            Text('Filter by type', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 12),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _filters
-                    .map(
-                      (filter) => Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: ChoiceChip(
-                          label: Text(filter),
-                          selected: _selectedFilter == filter,
-                          onSelected: (_) {
-                            setState(() => _selectedFilter = filter);
-                            _fetchOrders();
-                          },
-                        ),
-                      ),
-                    )
-                    .toList(),
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _OrdersSummary(
+                    activeCount: allOrders.length,
+                    pendingBilling: pendingPayments,
+                    totalValue: totalValue,
+                  ),
+                  const SizedBox(height: 24),
+                  Text('Filter by type', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 12),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _filters
+                          .map(
+                            (filter) => Padding(
+                              padding: const EdgeInsets.only(right: 12),
+                              child: ChoiceChip(
+                                label: Text(filter),
+                                selected: _selectedFilter == filter,
+                                onSelected: (_) {
+                                  setState(() => _selectedFilter = filter);
+                                  _fetchOrders();
+                                },
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ]),
               ),
             ),
-            const SizedBox(height: 16),
-            if (ordersState.status == OrdersStatus.loading)
-              const Center(child: CircularProgressIndicator())
-            else if (ordersState.status == OrdersStatus.failure)
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text('Failed to load orders.'),
+            if (ordersState.status == OrdersStatus.loading && allOrders.isEmpty)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (ordersState.status == OrdersStatus.failure &&
+                allOrders.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text('Failed to load orders.'),
+                    ),
+                  ),
                 ),
               )
-            else if (filteredOrders.isEmpty)
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      Icon(Icons.inbox_outlined, size: 32, color: Colors.grey),
-                      SizedBox(height: 12),
-                      Text('No active orders in this segment.'),
-                    ],
+            else if (allOrders.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.inbox_outlined,
+                            size: 32,
+                            color: Colors.grey,
+                          ),
+                          SizedBox(height: 12),
+                          Text('No active orders in this segment.'),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               )
             else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: filteredOrders.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final order = filteredOrders[index];
-                  return _OrderCard(
-                    order: order,
-                    onTap: () => _openOrder(order),
-                  );
-                },
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList.builder(
+                  itemCount: allOrders.length,
+                  itemBuilder: (context, index) {
+                    final order = allOrders[index];
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        bottom: index == allOrders.length - 1 ? 0 : 12,
+                      ),
+                      child: _OrderCard(
+                        order: order,
+                        onTap: () => _openOrder(order),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            if (ordersState.isLoadingMore)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              )
+            else if (!ordersState.hasMore && allOrders.isNotEmpty)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: 24),
+                  child: Center(child: Text('No more orders')),
+                ),
               ),
           ],
         ),
@@ -329,6 +389,8 @@ class _OrderCard extends StatelessWidget {
         ? order.tableName!
         : '${order.type} • ${order.reference}';
     final startedAt = _formatOrderTimestamp(order.startedAt);
+    final channelLabel = _channelLabel(order.channel);
+    final channelIcon = _iconForChannel(order.channel);
     final subtitleParts = <String>[
       'Items: ${order.itemsCount}',
       if (startedAt.isNotEmpty) 'Started $startedAt',
@@ -343,6 +405,20 @@ class _OrderCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                children: [
+                  Icon(channelIcon, size: 20, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    channelLabel,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
@@ -373,29 +449,10 @@ class _OrderCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  Chip(
-                    avatar: const Icon(Icons.label, size: 18),
-                    label: Text(order.type),
-                  ),
-                  Chip(
-                    avatar: const Icon(Icons.timelapse, size: 18),
-                    label: Text(order.status),
-                  ),
-
-                  // if (order.guests > 0)
-                  //   Chip(
-                  //     avatar: const Icon(Icons.group, size: 18),
-                  //     label: Text('Guests: ${order.guests}'),
-                  //   ),
-                ],
-              ),
-              if (order.contact != null)
+              if (order.contact != null) ...[
+                const SizedBox(height: 12),
                 Text(order.contact!, style: theme.textTheme.bodySmall),
+              ],
             ],
           ),
         ),
@@ -504,6 +561,46 @@ class _OrderCreationOption {
   });
 }
 
+IconData _iconForChannel(String channel) {
+  switch (channel.toLowerCase()) {
+    case 'table':
+      return Icons.table_bar;
+    case 'group':
+      return Icons.groups;
+    case 'pickup':
+      return Icons.delivery_dining;
+    case 'quick_billing':
+    case 'quick billing':
+      return Icons.flash_on;
+    case 'delivery':
+      return Icons.local_shipping;
+    case 'online':
+      return Icons.wifi;
+    default:
+      return Icons.receipt_long;
+  }
+}
+
+String _channelLabel(String channel) {
+  switch (channel.toLowerCase()) {
+    case 'table':
+      return 'Table';
+    case 'group':
+      return 'Group';
+    case 'pickup':
+      return 'Pickup';
+    case 'quick_billing':
+    case 'quick billing':
+      return 'Quick Billing';
+    case 'delivery':
+      return 'Delivery';
+    case 'online':
+      return 'Online';
+    default:
+      return 'Order';
+  }
+}
+
 String _formatCurrency(double value) => '\$${value.toStringAsFixed(2)}';
 
 String _formatOrderTimestamp(String raw) {
@@ -523,7 +620,7 @@ String _formatOrderTimestamp(String raw) {
     'Sep',
     'Oct',
     'Nov',
-    'Dec'
+    'Dec',
   ];
 
   final local = parsed.toLocal();
@@ -532,7 +629,7 @@ String _formatOrderTimestamp(String raw) {
   final minute = local.minute.toString().padLeft(2, '0');
   final period = local.hour >= 12 ? 'PM' : 'AM';
   final datePart =
-      '${month} ${local.day}${local.year != DateTime.now().year ? ', ${local.year}' : ''}';
+      '$month ${local.day}${local.year != DateTime.now().year ? ', ${local.year}' : ''}';
 
   return '$datePart • $hour:$minute $period';
 }

@@ -3,10 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/features/auth/domain/entities/login_entity.dart';
 import 'package:yummy/features/auth/domain/entities/register_entity.dart';
 import 'package:yummy/features/auth/domain/entities/admin_register_entity.dart';
+import 'package:yummy/features/auth/domain/usecases/admin_register_resend_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/login_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/register_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/admin_register_usecase.dart';
+import 'package:yummy/features/auth/domain/usecases/admin_register_verify_usecase.dart';
 import 'package:yummy/features/restaurant/domain/usecases/get_restaurant_by_user_usecase.dart';
 import 'package:yummy/core/services/restaurant_details_service.dart';
 
@@ -17,6 +19,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc({
     required this.registerUsecase,
     required this.adminRegisterUsecase,
+    required this.adminRegisterVerifyUsecase,
+    required this.adminRegisterResendUsecase,
     required this.loginUsecase,
     required this.logoutUsecase,
     required this.getRestaurantByUserUsecase,
@@ -25,11 +29,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LoginRequested>(_onLoginRequested);
     on<RegisterRequested>(_onRegisterRequested);
     on<AdminRegisterRequested>(_onAdminRegisterRequested);
+    on<AdminRegisterVerifyRequested>(_onAdminRegisterVerifyRequested);
+    on<AdminRegisterResendRequested>(_onAdminRegisterResendRequested);
     on<LogoutRequested>(_onLogoutRequested);
   }
 
   final RegisterUsecase registerUsecase;
   final AdminRegisterUsecase adminRegisterUsecase;
+  final AdminRegisterVerifyUsecase adminRegisterVerifyUsecase;
+  final AdminRegisterResendUsecase adminRegisterResendUsecase;
   final LoginUsecase loginUsecase;
   final LogoutUsecase logoutUsecase;
   final GetRestaurantByUserUsecase getRestaurantByUserUsecase;
@@ -44,8 +52,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       LoginParams(email: event.email, password: event.password),
     );
 
-    await Future.delayed(const Duration(milliseconds: 50));
-
     await result.fold(
       (failure) async => emit(AuthFailure(message: failure.message)),
       (loginEntity) async {
@@ -59,20 +65,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _cacheRestaurantForUser() async {
     final restaurantResult = await getRestaurantByUserUsecase();
-    await restaurantResult.fold(
-      (_) async {},
-      (restaurant) async {
-        await restaurantDetailsService.saveDetails(
-          RestaurantDetails(
-            id: restaurant.id,
-            name: restaurant.name,
-            address: restaurant.address,
-            phone: restaurant.phone,
-            description: restaurant.description ?? '',
-          ),
-        );
-      },
-    );
+    await restaurantResult.fold((_) async {}, (restaurant) async {
+      await restaurantDetailsService.saveDetails(
+        RestaurantDetails(
+          id: restaurant.id,
+          name: restaurant.name,
+          address: restaurant.address,
+          phone: restaurant.phone,
+          description: restaurant.description ?? '',
+        ),
+      );
+    });
   }
 
   Future<void> _onRegisterRequested(
@@ -113,6 +116,44 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (failure) => emit(AuthFailure(message: failure.message)),
       (adminEntity) =>
           emit(AuthAdminRegisterSuccess(adminRegisterEntity: adminEntity)),
+    );
+  }
+
+  Future<void> _onAdminRegisterVerifyRequested(
+    AdminRegisterVerifyRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    final params = AdminRegisterVerifyParams(
+      name: event.name,
+      email: event.email,
+      password: event.password,
+      confirmPassword: event.confirmPassword,
+      otp: event.otp,
+    );
+
+    final result = await adminRegisterVerifyUsecase(params);
+    result.fold(
+      (failure) => emit(AuthFailure(message: failure.message)),
+      (adminEntity) => emit(
+        AuthAdminRegisterVerifySuccess(adminRegisterEntity: adminEntity),
+      ),
+    );
+  }
+
+  Future<void> _onAdminRegisterResendRequested(
+    AdminRegisterResendRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    final params = AdminRegisterResendParams(email: event.email);
+
+    final result = await adminRegisterResendUsecase(params);
+    result.fold(
+      (failure) => emit(AuthFailure(message: failure.message)),
+      (adminEntity) => emit(
+        AuthAdminRegisterResendSuccess(adminRegisterEntity: adminEntity),
+      ),
     );
   }
 

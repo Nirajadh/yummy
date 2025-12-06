@@ -8,6 +8,8 @@ import 'package:yummy/features/auth/data/datasources/auth_remote_data_source.dar
 import 'package:yummy/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:yummy/features/auth/domain/repositories/auth_repository.dart';
 import 'package:yummy/features/auth/domain/usecases/admin_register_usecase.dart';
+import 'package:yummy/features/auth/domain/usecases/admin_register_verify_usecase.dart';
+import 'package:yummy/features/auth/domain/usecases/admin_register_resend_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/login_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:yummy/features/auth/domain/usecases/register_usecase.dart';
@@ -149,6 +151,12 @@ Future<void> setupDependencies() async {
   // Use cases
   sl.registerFactory(() => RegisterUsecase(authRepository: sl()));
   sl.registerFactory(() => AdminRegisterUsecase(authRepository: sl()));
+  sl.registerFactory(
+    () => AdminRegisterVerifyUsecase(authRepository: sl()),
+  );
+  sl.registerFactory(
+    () => AdminRegisterResendUsecase(authRepository: sl()),
+  );
   sl.registerFactory(() => LoginUsecase(authRepository: sl()));
   sl.registerFactory(() => LogoutUsecase(authRepository: sl()));
   sl.registerFactory(() => GetAdminDashboardSnapshotUseCase(sl()));
@@ -188,6 +196,8 @@ Future<void> setupDependencies() async {
     () => AuthBloc(
       registerUsecase: sl(),
       adminRegisterUsecase: sl(),
+      adminRegisterVerifyUsecase: sl(),
+      adminRegisterResendUsecase: sl(),
       loginUsecase: sl(),
       logoutUsecase: sl(),
       getRestaurantByUserUsecase: sl(),

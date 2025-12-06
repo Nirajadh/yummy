@@ -4,16 +4,28 @@ import 'package:yummy/features/common/domain/repositories/restaurant_repository.
 import 'package:yummy/features/finance/domain/entities/income_entry_entity.dart';
 import 'package:yummy/features/finance/domain/usecases/get_income_usecase.dart';
 
-class IncomeScreen extends StatelessWidget {
+class IncomeScreen extends StatefulWidget {
   const IncomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<IncomeScreen> createState() => _IncomeScreenState();
+}
+
+class _IncomeScreenState extends State<IncomeScreen> {
+  late final Future<List<IncomeEntryEntity>> _incomeFuture;
+
+  @override
+  void initState() {
+    super.initState();
     final repository = context.read<RestaurantRepository>();
     final usecase = GetIncomeUseCase(repository);
+    _incomeFuture = usecase();
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return FutureBuilder<List<IncomeEntryEntity>>(
-      future: usecase(),
+      future: _incomeFuture,
       builder: (context, snapshot) {
         final income = snapshot.data ?? const <IncomeEntryEntity>[];
         final total = income.fold<double>(0, (sum, inc) => sum + inc.amount);

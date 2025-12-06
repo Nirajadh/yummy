@@ -34,6 +34,11 @@ class StaffDashboardScreen extends StatelessWidget {
           orderHistory: snapshot.orderHistory,
           activeOrders: snapshot.activeOrders,
           expenses: snapshot.expenses,
+          onRefresh: () async {
+            context
+                .read<StaffDashboardBloc>()
+                .add(const StaffDashboardRefreshed());
+          },
           onMetricTap: (context, metric) => _handleMetricTap(context, metric),
         );
       },

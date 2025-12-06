@@ -4,16 +4,28 @@ import 'package:yummy/features/common/domain/repositories/restaurant_repository.
 import 'package:yummy/features/finance/domain/entities/purchase_entry_entity.dart';
 import 'package:yummy/features/finance/domain/usecases/get_purchases_usecase.dart';
 
-class PurchaseScreen extends StatelessWidget {
+class PurchaseScreen extends StatefulWidget {
   const PurchaseScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<PurchaseScreen> createState() => _PurchaseScreenState();
+}
+
+class _PurchaseScreenState extends State<PurchaseScreen> {
+  late final Future<List<PurchaseEntryEntity>> _purchasesFuture;
+
+  @override
+  void initState() {
+    super.initState();
     final repository = context.read<RestaurantRepository>();
     final usecase = GetPurchasesUseCase(repository);
+    _purchasesFuture = usecase();
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return FutureBuilder<List<PurchaseEntryEntity>>(
-      future: usecase(),
+      future: _purchasesFuture,
       builder: (context, snapshot) {
         final purchases = snapshot.data ?? const <PurchaseEntryEntity>[];
         final total = purchases.fold<double>(0, (sum, p) => sum + p.amount);

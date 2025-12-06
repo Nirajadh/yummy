@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yummy/core/widgets/app_text_field.dart';
 import 'package:yummy/core/widgets/auth_widgets.dart';
 import 'package:yummy/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:yummy/features/restaurant/presentation/restaurant_details_screen.dart';
+import 'package:yummy/features/auth/presentation/screens/admin_otp_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -21,6 +21,17 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _loading = false;
   bool _rememberMe = false;
   AuthTab _selectedTab = AuthTab.login;
+
+  int? _extractSecondsFromMessage(String message) {
+    final match = RegExp(r'(\d+)').firstMatch(message);
+    if (match != null) {
+      final value = int.tryParse(match.group(1) ?? '');
+      if (value != null && value > 0) {
+        return value;
+      }
+    }
+    return null;
+  }
 
   void _switchToLogin() {
     setState(() {
@@ -93,6 +104,32 @@ class _AuthScreenState extends State<AuthScreen> {
 
           if (state is AuthFailure) {
             _showSnack(state.message);
+
+            // If admin sign-up reports that an OTP is already sent,
+            // still allow the user to go to the OTP screen to enter it.
+            if (_selectedTab == AuthTab.signUp) {
+              final message = state.message.toLowerCase();
+              final looksLikeOtpAlreadySent =
+                  message.contains('otp') &&
+                  (message.contains('already') || message.contains('wait'));
+              if (looksLikeOtpAlreadySent) {
+                // Try to extract remaining seconds from the backend message.
+                final remainingSeconds = _extractSecondsFromMessage(
+                  state.message,
+                );
+                Navigator.pushReplacementNamed(
+                  context,
+                  '/admin-otp',
+                  arguments: AdminOtpScreenArgs(
+                    name: _nameController.text.trim(),
+                    email: _emailController.text.trim(),
+                    password: _passwordController.text,
+                    confirmPassword: _confirmController.text,
+                    initialSecondsLeft: remainingSeconds,
+                  ),
+                );
+              }
+            }
           }
 
           if (state is AuthLoginSuccess) {
@@ -121,10 +158,12 @@ class _AuthScreenState extends State<AuthScreen> {
             _showSnack(state.adminRegisterEntity.message);
             Navigator.pushReplacementNamed(
               context,
-              '/restaurant-setup',
-              arguments: const RestaurantDetailsArgs(
-                allowSkip: true,
-                redirectRoute: '/admin-dashboard',
+              '/admin-otp',
+              arguments: AdminOtpScreenArgs(
+                name: _nameController.text.trim(),
+                email: _emailController.text.trim(),
+                password: _passwordController.text,
+                confirmPassword: _confirmController.text,
               ),
             );
           }
@@ -167,7 +206,6 @@ class _AuthScreenState extends State<AuthScreen> {
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const SizedBox(height: 10),
                           Text(
                             'Create an account or log in to explore the restaurant suite.',
                             style: TextStyle(
